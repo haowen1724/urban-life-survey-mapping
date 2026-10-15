@@ -323,7 +323,8 @@ footer a{color:var(--accent)}
     <div class="card">
       <h2 id="h-stay"></h2><p class="hint" id="p-stay"></p>
       <div class="chips" id="colorBy" style="margin-top:12px"></div>
-      <div class="planbox" style="margin-top:12px"><div class="planinner" id="anInner"></div></div>
+      <div id="anZoom" style="margin-top:12px"></div>
+      <div class="planbox" style="margin-top:8px"><div class="planinner" id="anInner"></div></div>
       <div class="legend" id="anLegend"></div>
     </div>
     <div class="card"><h2 id="h-who"></h2><div id="demoChart" style="margin-top:10px"></div></div>
@@ -358,12 +359,12 @@ var POST=[["standing","Standing","站立","#0d7a6b"],["leaning","Leaning","倚�
   ["sit_public","Sitting — public seat","坐－公共座椅","#b8761c"],["sit_comm","Sitting — café seat","坐－店家座位","#c7392b"],
   ["sit_informal","Sitting — ground, step, kerb","坐－地面、階梯、路緣","#7b5ea7"],["lying","Lying down","躺臥","#5b6b64"],
   ["moving_in","Moving within the area","範圍內走動","#3a8f9a"]];
-var ACTS=[["talking","Talking with others","與人交談"],["eating","Eating or drinking","飲食"],
-  ["electronics","Using a phone or laptop","使用手機或電腦"],["waiting","Waiting for transport","等候交通"],
-  ["commerce","Buying or selling","買賣"],["rec_passive","Resting, watching","休息、觀看"],
-  ["rec_active","Active recreation, exercise","活動、運動"],["play","Playing","玩耍"],
-  ["cultural","Cultural activity","文化活動"],["working","Working, civic upkeep","工作、環境維護"],
-  ["care","Caring for a child","照顧孩童"],["other","Something else","其他"]];
+var ACTS=[["talking","Talking with others","與人交談","#0d7a6b"],["eating","Eating or drinking","飲食","#b8761c"],
+  ["electronics","Using a phone or laptop","使用手機或電腦","#2d6ca2"],["waiting","Waiting for transport","等候交通","#7b5ea7"],
+  ["commerce","Buying or selling","買賣","#c7392b"],["rec_passive","Resting, watching","休息、觀看","#5b8c3a"],
+  ["rec_active","Active recreation, exercise","活動、運動","#d4a017"],["play","Playing","玩耍","#e07a5f"],
+  ["cultural","Cultural activity","文化活動","#8e5572"],["working","Working, civic upkeep","工作、環境維護","#5b6b64"],
+  ["care","Caring for a child","照顧孩童","#3a8f9a"],["other","Something else","其他","#9aa39e"]];
 var PROPS=[["none","Nothing","無"],["brought","Brought object","自帶物品"],
   ["natural","Natural material","自然材料"],["fixed","Fixed equipment","固定設施"]];
 var WX=[["Sunny","晴"],["Cloudy","陰"],["Light rain","小雨"],["Rain","雨"],["Hot","炎熱"],["Cool","涼爽"]];
@@ -443,7 +444,7 @@ var HOW={
   ["Picture a line across the street. Count everyone who crosses it, in both directions and on both sides.","想像一條橫越街道的線。計算所有通過的人——雙向、街道兩側都要算。"],
   ["Include children who are carried or in strollers, people in wheelchairs, and pregnant women.","包括被抱著或坐在嬰兒車裡的孩子、輪椅使用者及孕婦。"],
   ["Tap once per person. If there are too many to keep up, make your best estimate and say so in the notes.","每人點一下。若人太多來不及，請盡量估算，並在備註中說明。"],
-  ["In a busy spot, work in pairs: one person taps age and gender, the other counts how people are travelling.","在繁忙地點兩人一組：一人記錄年齡與性別，另一人記錄移動方式。"],
+  ["One person is enough. In a very busy spot a second person, counting how people travel, helps but is not required.","一人即可。在非常繁忙的地點，若有第二人協助記錄移動方式會更好，但非必要。"],
   ["Note anything out of the ordinary: a delivery, a market, a sudden shower.","記下任何異常狀況：貨車卸貨、市集、突然下雨。"]],
   note:["Gehl’s simple count runs for ten minutes. This study uses five, because Taiwanese lanes are busy. Use the same period at every point.","Gehl 的簡易計數為十分鐘。本研究因台灣街巷人潮較多，採用五分鐘。所有調查點請使用相同時長。"]},
  stationary:{sum:["Mapping people who stay","測繪停留的人"],gehl:true,dg:DG.stationary,
@@ -531,7 +532,7 @@ var D={
   people:["people","人"],scored:["scored","得分"],
   hStay:["Where people stay","停留分布"],
   pStay:["Every person plotted, coloured by posture. This is the map the protocol exists to produce.","每一個人的位置，依姿勢著色。這正是此調查方法要產出的圖。"],
-  byPosture:["By posture","依姿勢"],byAge:["By age","依年齡"],byGender:["By gender","依性別"],
+  byPosture:["By posture","依姿勢"],byAge:["By age","依年齡"],byActivity:["By activity","依行為"],
   hWho:["Who is there","使用者組成"],activities:["Activities","行為"],
   hFlow:["Passing through","通過人流"],
   pFlow:["People counted per hour at each gate, scaled from the counting period.","各斷面每小時通過人數，由計數時段換算。"],
@@ -785,7 +786,9 @@ function nameUsed(t){
   return S.pts.some(function(p){return p.student===t})||S.recs.some(function(r){return r.student===t});
 }
 function canDropName(t){
-  return ROLE==="admin"||(S.teamDev[t]&&S.teamDev[t]===DEVICE)||!nameUsed(t);
+  if(ROLE==="admin") return true;
+  if(!S.nameRules) return false;   // the deployed script predates surveyor name removal
+  return (S.teamDev[t]&&S.teamDev[t]===DEVICE)||!nameUsed(t);
 }
 function renderTeam(){
   var L=$("stuList"); if(!L) return;
@@ -951,14 +954,34 @@ function paintClock(){
 function tTot(){var t=0;for(var k in run.tally) t+=run.tally[k];var e=$("tTotal");if(e)e.textContent=t}
 
 /* ---------- stationary ---------- */
+/* zoom for any plan: the plan is drawn wider than its box and the box scrolls */
+var ZM={stInner:1,anInner:1};
+function zoomHtml(id){
+  return '<div class="zoom" role="group" aria-label="Zoom" data-for="'+id+'">'+[1,2,3,4].map(function(z){
+    return '<button type="button" data-z="'+z+'" aria-pressed="'+(ZM[id]===z)+'">'+z+'&times;</button>'}).join("")+'</div>';
+}
+function wireZoom(id){
+  var g=document.querySelector('.zoom[data-for="'+id+'"]'),inner=$(id);
+  if(inner) inner.style.width=(ZM[id]*100)+"%";
+  if(!g) return;
+  g.querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click",function(){
+      ZM[id]=+b.dataset.z;
+      g.querySelectorAll("button").forEach(function(o){o.setAttribute("aria-pressed",o===b?"true":"false")});
+      if($(id)) $(id).style.width=(ZM[id]*100)+"%";
+    });
+  });
+}
 function stationaryBody(){
   return '<div class="card"><h2>'+esc(T(D.hPlot))+'</h2><p class="hint">'+esc(T(D.pPlot))+'</p>'+
-    '<div class="planbox" style="margin-top:12px"><div class="planinner" id="stInner"></div></div>'+
+    '<div style="margin-top:12px">'+zoomHtml("stInner")+'</div>'+
+    '<div class="planbox" style="margin-top:8px"><div class="planinner" id="stInner"></div></div>'+
     '<div id="stSheet"></div>'+
     '<div class="row spread" style="margin-top:12px"><span class="mono" style="font-size:24px;font-weight:600" id="pCount">'+run.people.length+'</span>'+
     '</div><div class="plist" id="pList"></div></div>';
 }
 function wireStationary(){
+  wireZoom("stInner");
   renderStPlan();
   renderPList();
 }
@@ -999,7 +1022,6 @@ function renderSheet(){
     '<h3>'+esc(T(D.gender))+'</h3>'+chips("cGen",GEN,p.gender)+
     '<h3>'+esc(T(D.posture))+'</h3>'+chips("cPost",POST,p.posture)+
     '<h3>'+esc(T(D.doing))+'</h3>'+chips("cAct",ACTS,p.acts,true)+
-    '<h3>'+esc(T(D.withW))+'</h3>'+chips("cProp",PROPS,p.prop)+
     '<h3>'+esc(T(D.groupMob))+'</h3><div class="row">'+
       '<label style="flex:1;min-width:120px"><span class="flab">'+esc(T(D.groupSize))+'</span>'+
       '<input type="number" id="pGroup" min="1" max="20" value="'+(p.group||1)+'"></label>'+
@@ -1023,7 +1045,7 @@ function renderSheet(){
       });
     });
   }
-  bind("cAge","age");bind("cGen","gender");bind("cPost","posture");bind("cAct","acts",true);bind("cProp","prop");
+  bind("cAge","age");bind("cGen","gender");bind("cPost","posture");bind("cAct","acts",true);
   $("pGroup").addEventListener("change",function(){p.group=Math.max(1,+this.value||1)});
   $("pAssist").addEventListener("click",function(){p.assist=!p.assist;this.setAttribute("aria-pressed",p.assist?"true":"false")});
   $("delP").addEventListener("click",function(){run.people.splice(run.sel,1);run.sel=null;renderStPlan();renderSheet();renderPList()});
@@ -1218,7 +1240,7 @@ $("exportBtn").addEventListener("click",function(){
 function drawAnalysis(){
   var cb=$("colorBy");
   cb.innerHTML="";
-  [["posture",T(D.byPosture)],["age",T(D.byAge)],["gender",T(D.byGender)]].forEach(function(o){
+  [["posture",T(D.byPosture)],["activity",T(D.byActivity)],["age",T(D.byAge)]].forEach(function(o){
     var b=document.createElement("button");b.className="chip";b.type="button";b.dataset.v=o[0];b.textContent=o[1];
     b.setAttribute("aria-pressed",colorBy===o[0]?"true":"false");
     b.addEventListener("click",function(){colorBy=o[0];drawAnalysis()});
@@ -1230,15 +1252,18 @@ function drawAnalysis(){
   var GENC={f:"#c7392b",m:"#2d6ca2",u:"#8a948e"};
   function pColor(p){
     if(colorBy==="posture") return colorOf(POST,p.posture);
-    if(colorBy==="gender") return GENC[p.gender]||"#888";
+    if(colorBy==="activity") return (p.acts&&p.acts.length)?colorOf(ACTS,p.acts[0]):"#c2c8c0";
     for(var i=0;i<AGES.length;i++) if(AGES[i][0]===p.age) return AGEC[i];
     return "#888";
   }
+  if(!$("anZoom").childElementCount){$("anZoom").innerHTML=zoomHtml("anInner");wireZoom("anInner")}
+  $("anInner").style.width=(ZM.anInner*100)+"%";
   paintPlan($("anInner"),people.map(function(p){
     return '<div class="pin person" style="left:'+(p.x*100).toFixed(3)+'%;top:'+(p.y*100).toFixed(3)+'%;background:'+pColor(p)+'"></div>';
   }).join(""),null,T(D.needPlanAn));
   var lg=colorBy==="posture"?POST.map(function(p){return [lab(POST,p[0]),p[3]]}):
-         colorBy==="gender"?GEN.map(function(g){return [lab(GEN,g[0]),GENC[g[0]]]}):
+         colorBy==="activity"?ACTS.filter(function(a){return people.some(function(p){return p.acts&&p.acts[0]===a[0]})})
+           .map(function(a){return [lab(ACTS,a[0]),a[3]]}):
          AGES.map(function(a,i){return [a[1],AGEC[i]]});
   $("anLegend").innerHTML=people.length?lg.map(function(l){return '<span><i style="background:'+l[1]+'"></i>'+esc(l[0])+'</span>'}).join(""):"";
 
@@ -1247,7 +1272,6 @@ function drawAnalysis(){
   else{
     var h="";
     [[T(D.age),AGES,"age",function(i){return AGEC[i]}],
-     [T(D.gender),GEN,"gender",function(i,k){return GENC[k]}],
      [T(D.posture),POST,"posture",function(i,k){return colorOf(POST,k)}]].forEach(function(dim){
       var counts={};people.forEach(function(p){counts[p[dim[2]]]=(counts[p[dim[2]]]||0)+1});
       h+='<h3>'+esc(dim[0])+'</h3><div class="bar" style="height:14px">'+
@@ -1374,7 +1398,7 @@ function refresh(force){
     }
     online=true;lastSync=new Date();ROLE=res.role;
     S.pts=(res.points||[]).map(function(p){p.student=p.surveyor||"";return p}).sort(function(a,b){return a.n-b.n});
-    S.team=res.surveyors||[];S.teamDev=res.surveyorDevices||{};
+    S.team=res.surveyors||[];S.teamDev=res.surveyorDevices||{};S.nameRules=!!res.surveyorDevices;
     S.server=res.records||[];
     mergeRecs();
     var wantPlan=res.planVersion&&(force||res.planVersion!==S.planVersion);
