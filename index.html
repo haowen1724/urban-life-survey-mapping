@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Urban Life Survey Mapping 城市生活調查測繪</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: setup → survey → log → analysis. Three instruments, nine points, bilingual.
+   Palette from the lane surface itself: teal paving, red edge line, asphalt. */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --surface-2:#eceee9;
+  --ink:#1f2522; --ink-2:#55605a; --ink-3:#8a948e;
+  --line:#d6dad4; --line-2:#c2c8c0;
+  --accent:#0d7a6b; --accent-soft:#d8ece8;
+  --signal:#c7392b; --signal-soft:#f8e2df;
+  --warn:#b8761c; --good:#2e7d4f;
+  --font-display:'Archivo','Noto Sans TC','Helvetica Neue',Arial,sans-serif;
+  --font-body:'IBM Plex Sans','Noto Sans TC','Helvetica Neue',Arial,sans-serif;
+  --font-mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171a19; --surface:#202423; --surface-2:#2a2f2d;
+  --ink:#e8ebe8; --ink-2:#a8b2ad; --ink-3:#78827d;
+  --line:#343a38; --line-2:#444b48;
+  --accent:#4fbfab; --accent-soft:#17352f;
+  --signal:#e9705e; --signal-soft:#3a211d;
+  --warn:#d79a3f; --good:#5fb380;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#171a19; --surface:#202423; --surface-2:#2a2f2d;
+  --ink:#e8ebe8; --ink-2:#a8b2ad; --ink-3:#78827d;
+  --line:#343a38; --line-2:#444b48;
+  --accent:#4fbfab; --accent-soft:#17352f;
+  --signal:#e9705e; --signal-soft:#3a211d;
+  --warn:#d79a3f; --good:#5fb380;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+img{max-width:100%}
+[hidden]{display:none!important}
+.role-surveyor .admin-only{display:none!important}
+.syncbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--ink-3);padding-bottom:6px}
+.syncbar .dotc{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
+.syncbar.ok .dotc{background:var(--good)}
+.syncbar.warn .dotc{background:var(--warn)}
+.syncbar.bad .dotc{background:var(--signal)}
+.syncbar button{background:none;border:1px solid var(--line-2);border-radius:6px;color:var(--ink-2);font-size:12px;
+  font-family:var(--font-body);padding:3px 8px;cursor:pointer;min-height:28px}
+.pill.pend{background:var(--warn);color:#fff}
+#gate .card{max-width:440px}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55;margin:0}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1000px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
+.hint{color:var(--ink-2);font-size:13px;margin:6px 0 0}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--bg);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:12px 8px}
+.hd h1{font-size:18px;font-weight:700;letter-spacing:-.01em;flex:1;min-width:0}
+.lang{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.lang button{background:var(--surface-2);border:0;color:var(--ink-2);font-family:var(--font-body);font-size:13px;
+  font-weight:600;padding:7px 11px;cursor:pointer;min-height:36px}
+.lang button+button{border-left:1px solid var(--line-2)}
+.lang button[aria-pressed="true"]{background:var(--accent);color:#fff}
+nav{display:flex;gap:2px;overflow-x:auto}
+nav button{flex:0 0 auto;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-2);
+  font-family:var(--font-body);font-size:14px;font-weight:500;padding:9px 12px;cursor:pointer}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+nav button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+main{padding-block:18px 24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;font-weight:600;margin-bottom:2px}
+.card h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:16px 0 8px}
+
+button.btn{font-family:var(--font-body);font-size:14px;font-weight:600;border-radius:8px;padding:10px 14px;
+  border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink);cursor:pointer;min-height:42px}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.btn.danger{background:none;border-color:var(--line-2);color:var(--signal)}
+button.btn.wide{width:100%}
+button.btn:disabled{opacity:.45;cursor:default}
+button.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spread{justify-content:space-between}
+label.fld{display:block;margin-bottom:12px}
+label.fld>span,.flab{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;font-family:var(--font-body);
+  font-size:15px;padding:10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);color:var(--ink);min-width:0}
+textarea{resize:vertical;min-height:58px}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:13px;padding:7px 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);
+  color:var(--ink-2);cursor:pointer;font-family:var(--font-body);min-height:36px}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.chip .alt{opacity:.6;font-size:11px;margin-left:4px}
+
+.planbox{position:relative;overflow:auto;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2);
+  max-height:70vh;-webkit-overflow-scrolling:touch}
+.planinner{position:relative;width:100%;transform-origin:0 0}
+.planinner img{display:block;width:100%;max-width:100%;height:auto}
+.planempty{display:grid;place-items:center;min-height:200px;text-align:center;padding:24px;color:var(--ink-2)}
+.pin{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;
+  border-radius:50%;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pin.pt{width:26px;height:26px;background:var(--signal);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:600;pointer-events:none}
+.pin.person{width:15px;height:15px;border-width:1.5px;cursor:pointer}
+.pin.sel{outline:3px solid var(--accent);outline-offset:2px;z-index:5}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.zoom{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.zoom button{background:var(--surface-2);border:0;color:var(--ink);font-family:var(--font-mono);font-size:13px;padding:8px 11px;cursor:pointer;min-height:38px}
+.zoom button+button{border-left:1px solid var(--line-2)}
+.zoom button[aria-pressed="true"]{background:var(--accent);color:#fff}
+
+.tally{display:grid;gap:5px;margin-top:8px}
+.tally .hcell{font-size:11px;color:var(--ink-3);display:flex;align-items:flex-end;justify-content:center;
+  text-align:center;padding-bottom:3px;font-weight:600;line-height:1.25}
+.tally .rcell{font-size:12px;color:var(--ink-2);display:flex;align-items:center;font-weight:600}
+.tally button{border:1px solid var(--line-2);background:var(--surface-2);border-radius:8px;cursor:pointer;
+  font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;color:var(--ink);
+  padding:12px 4px;min-height:52px}
+.tally button:active{background:var(--accent-soft);border-color:var(--accent)}
+.tally button.z{color:var(--ink-3);font-weight:400}
+
+.ctr{border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:var(--surface)}
+.ctr .lab{font-size:12px;color:var(--ink-2);margin-bottom:6px;min-height:30px;display:flex;align-items:flex-start}
+.ctr .ops{display:flex;align-items:center;gap:8px}
+.ctr .ops button{width:34px;height:34px;border-radius:7px;border:1px solid var(--line-2);background:var(--surface-2);
+  color:var(--ink);font-size:17px;font-weight:600;cursor:pointer;flex:0 0 auto}
+.ctr .val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:600;flex:1;text-align:center;min-width:0}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+
+.thumb{width:100%;max-width:280px;border-radius:9px;border:1px solid var(--line);display:block}
+.pill{display:inline-block;font-size:11px;letter-spacing:.05em;padding:3px 7px;border-radius:5px;
+  background:var(--surface-2);color:var(--ink-2);font-weight:600}
+.pill.ai{background:var(--signal-soft);color:var(--signal)}
+.pill.gps{background:var(--accent-soft);color:var(--accent)}
+
+.sheet{border:1px solid var(--accent);background:var(--surface);border-radius:10px;padding:14px;margin-top:12px}
+.plist{display:flex;flex-direction:column;gap:5px;margin-top:10px;max-height:260px;overflow:auto}
+.prow{display:flex;gap:9px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:13px}
+.prow .sw{width:13px;height:13px;border-radius:50%;flex:0 0 auto}
+.prow .x{margin-left:auto;background:none;border:0;color:var(--signal);cursor:pointer;font-size:17px;padding:0 5px}
+
+.q{border-bottom:1px solid var(--line);padding:11px 0}
+.q:last-child{border-bottom:0}
+.q .qt{font-size:14px;margin-bottom:3px}
+.q .qa{font-size:12px;color:var(--ink-3);margin-bottom:7px}
+.face{display:flex;gap:6px}
+.face button{flex:1;border:1px solid var(--line-2);background:var(--surface-2);border-radius:8px;padding:8px;
+  cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2);min-height:40px;font-family:var(--font-body)}
+.face button[aria-pressed="true"]{color:#fff}
+.face button.y[aria-pressed="true"]{background:var(--good);border-color:var(--good)}
+.face button.p[aria-pressed="true"]{background:var(--warn);border-color:var(--warn)}
+.face button.n[aria-pressed="true"]{background:var(--signal);border-color:var(--signal)}
+
+.pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.pick button{text-align:left;border:1px solid var(--line-2);background:var(--surface);border-radius:10px;padding:14px;
+  cursor:pointer;font-family:var(--font-body);color:var(--ink)}
+.pick button:hover{border-color:var(--accent)}
+.pick strong{display:block;font-family:var(--font-display);font-size:15px;margin-bottom:3px}
+.pick span{font-size:13px;color:var(--ink-2)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
+td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.scrollx{overflow-x:auto}
+.bar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--surface-2);margin-top:6px}
+.bar i{display:block;height:100%}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--ink-2)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:11px;height:11px;border-radius:3px;display:block}
+
+.logitem{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.logitem img{width:64px;height:64px;object-fit:cover;border-radius:7px;flex:0 0 auto;border:1px solid var(--line)}
+.logitem .meta{min-width:0;flex:1}
+
+.banner{border:1px solid var(--line-2);background:var(--surface-2);border-radius:9px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--ink-2)}
+.banner strong{color:var(--ink)}
+.timer{font-family:var(--font-mono);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--ink);color:var(--bg);padding:11px 17px;border-radius:9px;font-size:14px;z-index:90;max-width:88vw}
+@media (prefers-reduced-motion:no-preference){.toast{animation:rise .18s ease-out}}
+@keyframes rise{from{opacity:0;transform:translate(-50%,8px)}}
+
+.hint,.banner,.toast,.pick span,footer p{white-space:pre-line}
+.hd h1 .en{display:block;font-size:12px;font-weight:500;color:var(--ink-3);letter-spacing:.02em;margin-top:1px}
+/* how-to panels */
+.howto{border:1px solid var(--line-2);border-radius:10px;background:var(--surface);margin-bottom:14px}
+.howto summary{cursor:pointer;padding:12px 16px;display:flex;gap:4px 10px;align-items:baseline;flex-wrap:wrap;list-style:none;font-weight:600;font-size:14px}
+.howto summary::-webkit-details-marker{display:none}
+.howto summary::before{content:"+";font-family:var(--font-mono);color:var(--accent);width:12px;font-weight:600}
+.howto[open] summary::before{content:"−"}
+.howto summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px}
+.howto .sub{font-weight:400;color:var(--ink-3);font-size:13px}
+.hbody{padding:0 16px 16px}
+.howto ol{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:10px}
+.howto li::marker{color:var(--accent);font-family:var(--font-mono);font-weight:600}
+.howto li .z{display:block;font-size:14px}
+.howto li .e{display:block;font-size:12.5px;color:var(--ink-3)}
+.hnote{background:var(--surface-2);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--ink-2);margin:14px 0 0;white-space:pre-line}
+.hsrc{font-size:12px;color:var(--ink-3);margin:14px 0 0;white-space:pre-line;border-top:1px solid var(--line);padding-top:10px}
+.hsrc a{color:var(--accent)}
+figure.dgf{margin:4px 0 0}
+figure.dgf figcaption{font-size:12px;color:var(--ink-2);margin-top:6px;white-space:pre-line}
+.dg{width:100%;max-width:460px;height:auto;display:block}
+.dg text{font-family:var(--font-body);font-size:10px;fill:var(--ink-2)}
+.dg .blk{fill:var(--surface-2);stroke:var(--line-2)}
+.dg .gate{stroke:var(--accent);stroke-width:2.5;stroke-dasharray:5 4}
+.dg .flow{stroke:var(--ink-3);stroke-width:1.5;fill:none}
+.dg .ahf{fill:var(--ink-3)}
+.dg .ahs{fill:var(--signal)}
+.dg text.acc{fill:var(--accent);font-weight:600}
+.dg .sig{fill:var(--signal)}
+.dg .ppl{fill:var(--ink-2)}
+.dg .area{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4}
+.dg .walk{stroke:var(--signal);stroke-width:1.6;fill:none;stroke-dasharray:4 3}
+.dg .loop{fill:none;stroke:#3a8f9a;stroke-width:1.2;stroke-dasharray:3 2}
+.dg .ring{fill:var(--surface);stroke:var(--line-2);stroke-width:1.5}
+.dg .ink{fill:none;stroke:var(--ink-2);stroke-width:1.6;stroke-linecap:round}
+.dg .gd{fill:var(--good)} .dg .wn{fill:var(--warn)} .dg .sg{fill:var(--signal)}
+.dg .dot{stroke:var(--surface);stroke-width:1.5}
+footer{border-top:1px solid var(--line);margin-top:10px;padding-block:20px 40px;font-size:12px;color:var(--ink-3);line-height:1.6}
+footer .credit{max-width:62ch}
+footer .tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+footer .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:5px;
+  background:var(--surface-2);color:var(--ink-2)}
+footer .tag.beta{background:var(--warn);color:#fff}
+footer p{margin:0 0 8px}
+footer a{color:var(--accent)}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hd">
+      <h1>城市生活調查測繪<span class="en">Urban Life Survey Mapping</span></h1>
+    </div>
+    <div class="syncbar" id="syncbar"><span class="dotc"></span><span id="syncText"></span>
+      <button type="button" id="syncBtn" hidden></button><button type="button" id="codeBtn" hidden></button></div>
+    <nav role="tablist">
+      <button role="tab" id="t-set" aria-selected="true"></button>
+      <button role="tab" id="t-sur" aria-selected="false"></button>
+      <button role="tab" id="t-log" aria-selected="false"></button>
+      <button role="tab" id="t-an" aria-selected="false"></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="offline" class="banner" hidden></div>
+  <section id="gate" hidden>
+    <div class="card">
+      <h2 id="h-gate"></h2><p class="hint" id="p-gate"></p>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="gateCode" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:160px">
+        <button class="btn primary" id="gateBtn"></button>
+      </div>
+      <p class="hint" id="gateErr" style="color:var(--signal)"></p>
+    </div>
+  </section>
+
+  <section id="v-set">
+    <div id="howSet"></div>
+    <div class="card">
+      <h2 id="h-plan"></h2><p class="hint" id="p-plan"></p>
+      <div class="toolbar" style="margin-top:12px">
+        <label class="btn admin-only" style="display:inline-flex;align-items:center">
+          <span id="planUpLabel"></span><input type="file" id="planFile" accept="image/*" hidden>
+        </label>
+        <button class="btn admin-only" id="addPtBtn" aria-pressed="false"></button>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button data-z="1" aria-pressed="true">1&times;</button><button data-z="2" aria-pressed="false">2&times;</button><button data-z="3" aria-pressed="false">3&times;</button>
+        </div>
+      </div>
+      <div class="planbox"><div class="planinner" id="setInner"></div></div>
+      <p class="hint" id="setMode"></p>
+    </div>
+    <div class="card">
+      <h2 id="h-stu"></h2><p class="hint" id="p-stu"></p>
+      <div id="stuList" style="margin-top:10px"></div>
+      <div class="row admin-only" style="margin-top:10px">
+        <input type="text" id="stuNew" style="flex:1;min-width:140px">
+        <button class="btn" id="stuAdd"></button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 id="h-pts"></h2><p class="hint" id="p-pts"></p>
+      <div id="ptList" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section id="v-sur" hidden>
+    <div id="surPick">
+      <div class="card">
+        <h2 id="h-cov"></h2><p class="hint" id="p-cov"></p>
+        <div class="scrollx" style="margin-top:10px"><table id="covTable"><tbody></tbody></table></div>
+      </div>
+      <div class="card">
+        <h2 id="h-start"></h2><p class="hint" id="p-start"></p>
+        <div class="pick" id="pickBox" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div id="surRun" hidden></div>
+  </section>
+
+  <section id="v-log" hidden>
+    <div class="card">
+      <div class="row spread"><h2 id="h-log"></h2><button class="btn" id="exportBtn"></button></div>
+      <div class="chips" id="logFilter" style="margin-top:12px"></div>
+      <div id="logList" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <section id="v-an" hidden>
+    <div class="card">
+      <h2 id="h-stay"></h2><p class="hint" id="p-stay"></p>
+      <div class="chips" id="colorBy" style="margin-top:12px"></div>
+      <div class="planbox" style="margin-top:12px"><div class="planinner" id="anInner"></div></div>
+      <div class="legend" id="anLegend"></div>
+    </div>
+    <div class="card"><h2 id="h-who"></h2><div id="demoChart" style="margin-top:10px"></div></div>
+    <div class="card"><h2 id="h-flow"></h2><p class="hint" id="p-flow"></p><div id="flowChart" style="margin-top:10px"></div></div>
+    <div class="card"><h2 id="h-qual"></h2><div id="qualChart" style="margin-top:10px"></div></div>
+  </section>
+
+  <footer>
+    <div class="credit">
+      <div class="tagrow"><span class="tag beta">Beta 測試版</span><span class="tag">Arup</span><span class="tag">NTUT 北科大</span></div>
+      <p id="cred1"></p>
+      <p id="cred2"></p>
+      <p>工具包 Toolkit · <a href="https://vanleerfoundation.org/wp-content/uploads/2018/10/Urban95-Field-Guide.pdf" target="_blank" rel="noopener">Urban95 Field Guide, Gehl ↗</a> · <a href="https://issuu.com/gehlarchitects/docs/urban95_public_life_data_framework_guide" target="_blank" rel="noopener">Urban95 Public Life Data Framework ↗</a></p>
+    </div>
+  </footer>
+</main>
+
+<script src="config.js"></script>
+<script>
+(function(){
+"use strict";
+/* both languages on one page: Chinese first, English after (on its own line when long) */
+function T(a){ if(a[0]===a[1]) return a[0]; return a[1]+(a[0].length>34?"\n":" ")+a[0]; }
+
+/* code, english, chinese, colour */
+var AGES=[["0-4","0–4","0–4"],["5-14","5–14","5–14"],["15-24","15–24","15–24"],
+  ["25-44","25–44","25–44"],["45-64","45–64","45–64"],["65+","65+","65+"]];
+var GEN=[["f","Female","女性"],["m","Male","男性"],["u","Unsure","不確定"]];
+var MODES=[["walk","On foot","步行"],["assist","Using a mobility aid","使用行動輔具"],["stroller","Pushing a stroller","推嬰兒車"],
+  ["cycle","Cycling","自行車"],["kick","Scooter / kick-bike","滑板車"],["motor","Motor scooter","機車"]];
+var POST=[["standing","Standing","站立","#0d7a6b"],["leaning","Leaning","倚靠","#2d6ca2"],
+  ["sit_public","Sitting — public seat","坐－公共座椅","#b8761c"],["sit_comm","Sitting — café seat","坐－店家座位","#c7392b"],
+  ["sit_informal","Sitting — ground, step, kerb","坐－地面、階梯、路緣","#7b5ea7"],["lying","Lying down","躺臥","#5b6b64"],
+  ["moving_in","Moving within the area","範圍內走動","#3a8f9a"]];
+var ACTS=[["talking","Talking with others","與人交談"],["eating","Eating or drinking","飲食"],
+  ["electronics","Using a phone or laptop","使用手機或電腦"],["waiting","Waiting for transport","等候交通"],
+  ["commerce","Buying or selling","買賣"],["rec_passive","Resting, watching","休息、觀看"],
+  ["rec_active","Active recreation, exercise","活動、運動"],["play","Playing","玩耍"],
+  ["cultural","Cultural activity","文化活動"],["working","Working, civic upkeep","工作、環境維護"],
+  ["care","Caring for a child","照顧孩童"],["other","Something else","其他"]];
+var PROPS=[["none","Nothing","無"],["brought","Brought object","自帶物品"],
+  ["natural","Natural material","自然材料"],["fixed","Fixed equipment","固定設施"]];
+var WX=[["Sunny","晴"],["Cloudy","陰"],["Light rain","小雨"],["Rain","雨"],["Hot","炎熱"],["Cool","涼爽"]];
+var QUAL=[
+ [["Protection","防護"],[
+   ["Protected from traffic and vehicles","與車流有安全區隔"],
+   ["Sheltered from sun, wind and rain","可遮陽、擋風、避雨"],
+   ["Free of noise, dust, glare and litter","無噪音、灰塵、眩光與髒亂"],
+   ["Feels safe, overlooked, well lit","感覺安全、有人看顧、照明充足"]]],
+ [["Basic needs","基本需求"],[
+   ["Somewhere comfortable to sit","有舒適的坐處"],
+   ["Shade within easy reach","陰涼處就在附近"],
+   ["Water, toilets, somewhere to rest","有飲水、廁所與休息空間"],
+   ["Food and drink nearby","附近有餐飲"]]],
+ [["Comfort and delight","舒適與愉悅"],[
+   ["Easy and pleasant to walk through","步行順暢且舒適"],
+   ["Good places to stand and linger","有適合停留駐足的地方"],
+   ["Easy to talk and be heard","容易交談、聽得清楚"],
+   ["Materials and detail reward a close look","材料與細節耐看、值得細看"]]]];
+var TYPES=[["moving","People moving","人流計數"],["stationary","People staying","停留活動"],["quality","Quality criteria","空間品質"]];
+
+/* ---------- how-to panels: directions adapted from Gehl's Urban95 toolkit ---------- */
+var GEHL_LINK="https://vanleerfoundation.org/wp-content/uploads/2018/10/Urban95-Field-Guide.pdf";
+var FRAME_LINK="https://issuu.com/gehlarchitects/docs/urban95_public_life_data_framework_guide";
+var DG={
+ moving:
+  '<svg class="dg" viewBox="0 0 320 152" role="img" aria-label="A count line across the street; people cross it in both directions; the surveyor stands beside the flow">'+
+  '<defs><marker id="ahM" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahf" d="M0,0L10,5L0,10z"/></marker></defs>'+
+  '<rect class="blk" x="0.5" y="0.5" width="319" height="26"/><rect class="blk" x="0.5" y="125.5" width="319" height="26"/>'+
+  '<text x="8" y="17">建築 Buildings</text><text x="8" y="143">建築 Buildings</text>'+
+  '<line class="flow" x1="28" y1="50" x2="292" y2="50" marker-end="url(#ahM)"/>'+
+  '<line class="flow" x1="292" y1="100" x2="28" y2="100" marker-end="url(#ahM)"/>'+
+  '<circle class="ppl" cx="78" cy="50" r="4.5"/><circle class="ppl" cx="212" cy="50" r="4.5"/><circle class="ppl" cx="248" cy="50" r="4.5"/>'+
+  '<circle class="ppl" cx="104" cy="100" r="4.5"/><circle class="ppl" cx="196" cy="100" r="4.5"/>'+
+  '<line class="gate" x1="160" y1="27" x2="160" y2="125"/>'+
+  '<text class="acc" x="166" y="40">計數線 Count line</text>'+
+  '<text x="166" y="72">雙向、兩側都算</text><text x="166" y="84">Both ways, both sides</text>'+
+  '<circle class="sig" cx="146" cy="116" r="6"/><text x="98" y="120">你 You</text>'+
+  '</svg>',
+ stationary:
+  '<svg class="dg" viewBox="0 0 320 166" role="img" aria-label="An outlined survey area; the surveyor walks through once in one direction; people staying inside are plotted, someone passing outside is not">'+
+  '<defs><marker id="ahS" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahs" d="M0,0L10,5L0,10z"/></marker>'+
+  '<marker id="ahP" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahf" d="M0,0L10,5L0,10z"/></marker></defs>'+
+  '<rect class="area" x="56" y="12" width="240" height="124" rx="14"/>'+
+  '<text class="acc" x="68" y="29">調查範圍 Survey area</text>'+
+  '<path class="walk" d="M70 124 C 122 124 118 64 172 64 S 240 116 284 106" marker-end="url(#ahS)"/>'+
+  '<circle class="dot" cx="102" cy="82" r="5.5" fill="#0d7a6b"/><circle class="dot" cx="118" cy="98" r="5.5" fill="#b8761c"/>'+
+  '<circle class="dot" cx="156" cy="40" r="5.5" fill="#7b5ea7"/><circle class="dot" cx="212" cy="42" r="5.5" fill="#2d6ca2"/>'+
+  '<circle class="dot" cx="232" cy="88" r="5.5" fill="#0d7a6b"/><circle class="dot" cx="252" cy="68" r="5.5" fill="#b8761c"/>'+
+  '<circle class="loop" cx="168" cy="112" r="12"/><circle class="dot" cx="180" cy="112" r="5" fill="#3a8f9a"/>'+
+  '<line class="flow" x1="24" y1="16" x2="24" y2="132" marker-end="url(#ahP)"/><circle class="ppl" cx="24" cy="66" r="4.5"/>'+
+  '<text class="sig" x="31" y="70" style="font-size:12px;font-weight:700">✕</text>'+
+  '<text x="70" y="154">沿單一方向走過一次 Walk through once, one way</text>'+
+  '</svg>',
+ quality:
+  '<svg class="dg" viewBox="0 0 320 116" role="img" aria-label="Three steps: watch, score, compare">'+
+  '<defs><marker id="ahQ" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ahf" d="M0,0L10,5L0,10z"/></marker></defs>'+
+  '<circle class="ring" cx="52" cy="44" r="30"/><circle class="ring" cx="160" cy="44" r="30"/><circle class="ring" cx="268" cy="44" r="30"/>'+
+  '<line class="flow" x1="88" y1="44" x2="122" y2="44" marker-end="url(#ahQ)"/><line class="flow" x1="196" y1="44" x2="230" y2="44" marker-end="url(#ahQ)"/>'+
+  '<path class="ink" d="M33 44 Q52 27 71 44 Q52 61 33 44z"/><circle class="ppl" cx="52" cy="44" r="5"/>'+
+  '<circle class="gd" cx="144" cy="44" r="6.5"/><circle class="wn" cx="160" cy="44" r="6.5"/><circle class="sg" cx="176" cy="44" r="6.5"/>'+
+  '<circle class="ppl" cx="255" cy="33" r="6"/><path class="ppl" d="M243 59 a12 12 0 0 1 24 0 z"/>'+
+  '<circle class="ppl" cx="281" cy="33" r="6"/><path class="ppl" d="M269 59 a12 12 0 0 1 24 0 z"/>'+
+  '<text x="52" y="94" text-anchor="middle">1 觀察</text><text x="52" y="107" text-anchor="middle">Watch</text>'+
+  '<text x="160" y="94" text-anchor="middle">2 評分</text><text x="160" y="107" text-anchor="middle">Score</text>'+
+  '<text x="268" y="94" text-anchor="middle">3 比較</text><text x="268" y="107" text-anchor="middle">Compare</text>'+
+  '</svg>'
+};
+var HOW={
+ setup:{sum:["Getting a study running","開始一項調查"],gehl:false,note:["This app does not collect photos. People in the street have not agreed to be recorded, so please don’t photograph identifiable people for this survey.","本工具不收集照片。街上的民眾並未同意被記錄，因此請勿為本調查拍攝可辨識的個人。"],steps:[
+  ["Upload a site plan. A cropped screenshot from any map app works.","上傳基地圖。任何地圖軟體截圖、裁切後即可使用。"],
+  ["Add the surveyors who will collect data.","新增負責蒐集資料的調查員。"],
+  ["Tap “Add survey point”, place each point on the plan, then assign it to a surveyor in the list below.","點「新增調查點」，在圖上放置每個點，再於下方清單指派調查員。"],
+  ["At every point, run all three surveys. The coverage table on the Survey tab shows what is still missing.","在每個調查點完成三項調查。「調查」頁的進度表會顯示尚未完成的項目。"]]},
+ moving:{sum:["Counting people who pass","計數經過的人"],gehl:true,dg:DG.moving,steps:[
+  ["Stand at your point, beside the flow, where you can see the whole width of the street.","站在調查點、人流旁邊，能看見整條街寬的位置。"],
+  ["Picture a line across the street. Count everyone who crosses it, in both directions and on both sides.","想像一條橫越街道的線。計算所有通過的人——雙向、街道兩側都要算。"],
+  ["Include children who are carried or in strollers, people in wheelchairs, and pregnant women.","包括被抱著或坐在嬰兒車裡的孩子、輪椅使用者及孕婦。"],
+  ["Tap once per person. If there are too many to keep up, make your best estimate and say so in the notes.","每人點一下。若人太多來不及，請盡量估算，並在備註中說明。"],
+  ["In a busy spot, work in pairs: one person taps age and gender, the other counts how people are travelling.","在繁忙地點兩人一組：一人記錄年齡與性別，另一人記錄移動方式。"],
+  ["Note anything out of the ordinary: a delivery, a market, a sudden shower.","記下任何異常狀況：貨車卸貨、市集、突然下雨。"]],
+  note:["Gehl’s simple count runs for ten minutes. This study uses five, because Taiwanese lanes are busy. Use the same period at every point.","Gehl 的簡易計數為十分鐘。本研究因台灣街巷人潮較多，採用五分鐘。所有調查點請使用相同時長。"]},
+ stationary:{sum:["Mapping people who stay","測繪停留的人"],gehl:true,dg:DG.stationary,
+  cap:["● Staying: plot them    ○ Moving within the area: plot them    ✕ Passing through: skip","● 停留：標記　○ 範圍內走動：標記　✕ 路過：不計"],steps:[
+  ["Think of it as a snapshot from above: everyone staying in the area at one moment. It is not timed.","把它想成從上方拍一張照片：記錄某一刻停留在範圍內的所有人。不需計時。"],
+  ["Decide the edges of your area before you start, and keep them the same on every visit.","開始前先確定範圍的邊界，每次調查都維持相同。"],
+  ["Walk through the area once, in one direction, and plot each person where they are.","沿單一方向走過範圍一次，在圖上標出每個人所在的位置。"],
+  ["Map everyone staying inside the area, not only those along the edge.","標記範圍內所有停留的人，不只是邊緣的人。"],
+  ["Skip people passing through. Someone moving around inside the area, such as a child playing, does count: choose “Moving within the area”.","不要標記路過的人。在範圍內來回走動的人（例如玩耍的孩子）要算：姿勢選「範圍內走動」。"],
+  ["Each visit is a new record, even at the same point.","每次調查都是一筆新紀錄，即使在同一個點。"],
+  ["Note when a large group is doing the same thing.","若有一大群人在做同一件事，請記在備註。"]]},
+ quality:{sum:["Scoring the place","為空間評分"],gehl:true,dg:DG.quality,steps:[
+  ["Take a few minutes just to watch before you score. Where you stand changes what you see.","評分前先花幾分鐘單純觀察。站的位置不同，看到的結果也會不同。"],
+  ["Score each criterion: yes, partly, or no.","為每項準則評分：是、部分、否。"],
+  ["Keep in mind who uses this street — residents, shop workers, older people, children — not only yourself.","想著是誰在使用這條街——居民、店員、長者、孩童——而不只是你自己。"],
+  ["If you work in a group, score on your own first, then compare and talk it through.","若是小組調查，先各自評分，再一起比較與討論。"]],
+  note:["Urban95 scores each place for young children and their caregivers. This version scores it for everyone who uses the street. Quiet places are still worth assessing.","Urban95 以幼童及其照顧者的角度為空間評分；本版本則以所有街道使用者的角度評分。人少的空間同樣值得評估。"]}
+};
+function howHtml(k){
+  var h=HOW[k];
+  var s='<details class="howto"><summary><span>怎麼做 How to</span><span class="sub">'+esc(h.sum[1]+" · "+h.sum[0])+'</span></summary><div class="hbody">';
+  if(h.dg) s+='<figure class="dgf">'+h.dg+(h.cap?'<figcaption>'+esc(h.cap[1]+"\n"+h.cap[0])+'</figcaption>':"")+'</figure>';
+  s+='<ol>'+h.steps.map(function(st){return '<li><span class="z">'+esc(st[1])+'</span><span class="e">'+esc(st[0])+'</span></li>'}).join("")+'</ol>';
+  if(h.note) s+='<p class="hnote">'+esc(h.note[1]+"\n"+h.note[0])+'</p>';
+  if(h.gehl) s+='<p class="hsrc">說明改編自 Gehl — Making Cities for People，Urban95 工具包。\n'+
+    'Directions adapted from Gehl — Making Cities for People, Urban95 toolkit.\n'+
+    '<a href="'+GEHL_LINK+'" target="_blank" rel="noopener">Urban95 Field Guide ↗</a> · '+
+    '<a href="'+FRAME_LINK+'" target="_blank" rel="noopener">Public Life Data Framework ↗</a></p>';
+  return s+'</div></details>';
+}
+
+var D={
+  title:["Urban Life Survey Mapping","城市生活調查測繪"],
+  tabSet:["Setup","設定"],tabSur:["Survey","調查"],tabLog:["Records","紀錄"],tabAn:["Analysis","分析"],
+  hPlan:["Site plan","基地圖"],
+  pPlan:["Every survey is located on this plan. Upload it once; surveyors only tap on it.","所有調查都定位在這張圖上。上傳一次即可，調查員只需在圖上點選。"],
+  upload:["Upload site plan","上傳基地圖"],replace:["Replace site plan","更換基地圖"],
+  addPt:["Add survey point","新增調查點"],tapPlan:["Tap the plan…","請點選圖面…"],
+  tapWhere:["Tap the spot where the surveyor will stand.","點選調查員站立觀察的位置。"],
+  noPlan:["No site plan yet","尚未上傳基地圖"],
+  noPlanHint:["A cropped screenshot from any map app works.","用任何地圖軟體截圖、裁切後即可使用。"],
+  hStu:["Surveyors","調查員"],
+  pStu:["The people collecting data. Give each one a set of points; they run all three surveys at every point they hold.","負責蒐集資料的人員。每人負責一組調查點，並在每個點完成三項調查。"],
+  addStu:["Add surveyor","新增調查員"],namePh:["Name","姓名"],noStu:["No surveyors added yet.","尚未新增調查員。"],
+  ofPts:["points","個調查點"],
+  hPts:["Survey points","調查點"],
+  pPts:["A point is both a gate for counting people passing and the centre of an area for mapping people staying. Assign each one to a surveyor.","每個點既是計數人流的斷面，也是測繪停留活動的範圍中心。請指派給調查員。"],
+  noPts:["No points yet.","尚未設置調查點。"],pickStu:["— surveyor —","— 調查員 —"],
+  remove:["Remove","刪除"],of9:["of 9","／9"],
+  hCov:["Coverage","進度"],pCov:["What has been done and what is still missing.","已完成與尚未完成的項目。"],
+  covEmpty:["Add survey points on the Setup tab and assign each one to a surveyor.","請先在「設定」頁新增調查點，並指派給調查員。"],
+  colPoint:["Point","調查點"],colStudent:["Surveyor","調查員"],
+  covDone:["surveys done — three at each point","項調查已完成——每點三項"],
+  hStart:["Start a survey","開始調查"],
+  pStart:["Three instruments. Each produces one record, located on the plan and timestamped.","三種調查工具。每次產生一筆紀錄，附有圖面位置與時間。"],
+  movingD:["Stand at the point and tally everyone who passes, by age and gender. Five minutes.","站在調查點，依年齡與性別記錄所有經過的人。五分鐘。"],
+  stationaryD:["Plot every person in the area and code what they are doing. The core survey.","標出範圍內每一個人並記錄其行為。核心調查。"],
+  qualityD:["Score the place against twelve criteria. A walkthrough, no counting.","以十二項準則評分。走查即可，不需計數。"],
+  cancel:["Cancel","取消"],point:["Survey point","調查點"],time:["Time","時間"],weather:["Weather","天氣"],
+  hPeriod:["Counting period","計數時段"],
+  pPeriod:["Stand at the point, face the flow, and tally everyone who crosses the line.","站在調查點，面向人流方向，記錄每一位通過斷面的人。"],
+  minutes:["Counting period (minutes)","計數時段（分鐘）"],start:["Start","開始"],pause:["Pause","暫停"],
+  periodDone:["Counting period finished","計數時段結束"],
+  hTally:["Tally","計數"],pTally:["One tap per person. Undo fixes the last tap.","每人點一下。按「復原」可取消上一次。"],
+  undo:["Undo last","復原上一筆"],nothingUndo:["Nothing to undo","沒有可復原的項目"],
+  hModes:["How they were travelling","移動方式"],
+  pModes:["A second pass. Count the same flow again, this time by mode.","第二輪。再數一次同一股人流，這次依移動方式分類。"],
+  hPlot:["Plot each person","標記每一個人"],
+  pPlot:["Tap the plan where someone is, then code them. Work round the area once, clockwise, and do not go back.","在圖上點選某人所在位置，再填寫其分類。順時針繞行一次，不要回頭重複。"],
+  aiDraft:["Draft from photo","由照片生成草稿"],
+  noPlot:["Nobody plotted yet.","尚未標記任何人。"],
+  person:["Person","人員"],del:["Delete","刪除"],done:["Done","完成"],
+  age:["Age","年齡"],gender:["Gender","性別"],posture:["Posture","姿勢"],doing:["Doing what","行為"],
+  withW:["With","攜帶物"],groupMob:["Group and mobility","同行人數與行動輔具"],
+  groupSize:["Group size","同行人數"],usingAid:["Using a mobility aid","使用行動輔具"],
+  hCrit:["Twelve criteria","十二項準則"],
+  pCrit:["Walk the place first, then score it. Yes, partly, or no.","先走過一遍，再評分。是、部分、否。"],
+  yes:["Yes","是"],partly:["Partly","部分"],no:["No","否"],
+  hPhoto:["Photo","照片"],pPhoto:["Optional, but it is the evidence behind the count.","非必填，但這是數據背後的佐證。"],
+  takePhoto:["Take photo","拍照"],retake:["Retake photo","重新拍照"],reading:["Reading…","讀取中…"],
+  hNotes:["Notes","備註"],notesPh:["What the numbers do not capture.","數字無法呈現的觀察。"],
+  save:["Save record","儲存紀錄"],saving:["Saving…","儲存中…"],saved:["Record saved","紀錄已儲存"],
+  hLog:["Records","紀錄"],all:["All","全部"],export:["Export CSV","匯出 CSV"],
+  nothingYet:["Nothing recorded yet.","尚無紀錄。"],
+  people:["people","人"],scored:["scored","得分"],
+  hStay:["Where people stay","停留分布"],
+  pStay:["Every person plotted, coloured by posture. This is the map the protocol exists to produce.","每一個人的位置，依姿勢著色。這正是此調查方法要產出的圖。"],
+  byPosture:["By posture","依姿勢"],byAge:["By age","依年齡"],byGender:["By gender","依性別"],
+  hWho:["Who is there","使用者組成"],activities:["Activities","行為"],
+  hFlow:["Passing through","通過人流"],
+  pFlow:["People counted per hour at each gate, scaled from the counting period.","各斷面每小時通過人數，由計數時段換算。"],
+  perHour:["/hour","人／小時"],
+  hQual:["Quality scorecard","品質評分"],
+  hAi:["Where the AI draft was corrected","AI 草稿被修正之處"],
+  pAi:["Each time a surveyor changed a machine-drafted count, the difference is kept here.","每當調查員修改機器產生的草稿，差異都會記錄在此。"],
+  noStay:["No people-staying records yet.","尚無停留活動紀錄。"],
+  noMove:["No people-moving counts yet.","尚無人流計數紀錄。"],
+  noQual:["No quality walkthroughs yet.","尚無品質走查紀錄。"],
+  noAi:["No AI-drafted records yet.","尚無 AI 草稿紀錄。"],
+  colAi:["AI","AI"],colFinal:["Final","最終"],colChange:["Change","差異"],
+  aiMean:["Surveyors changed the machine count by","調查員平均修正機器計數"],
+  aiMean2:["people on average, across","人，共"],aiMean3:["drafted photos.","張草稿照片。"],
+  avgOf:["Average of","平均自"],countPeriods:["counting periods, scaled to an hourly rate.","個計數時段，換算為每小時人數。"],
+  meanOf:["Mean of","平均自"],walkthroughs:["walkthroughs. 2 = yes, 0 = no.","次走查。2 = 是，0 = 否。"],
+  notConnected:["<strong>Not signed in.</strong> Records are kept in a shared store this page cannot reach right now. Open the page signed in to the account this survey belongs to.","<strong>尚未登入。</strong>紀錄儲存在共用資料庫，目前無法連線。請以本調查所屬帳號登入後開啟。"],
+  readOnly:["<strong>Read-only access.</strong> You can see the survey but not add to it. Ask for Contributor access to record.","<strong>唯讀權限。</strong>您可以檢視但無法新增紀錄。請申請 Contributor 權限。"],
+  lostConn:["<strong>Lost the connection.</strong> Reload the page.","<strong>連線中斷。</strong>請重新整理頁面。"],
+  cantStart:["<strong>Could not start.</strong> Reload the page.","<strong>無法啟動。</strong>請重新整理頁面。"],
+  planSaved:["Site plan saved","基地圖已儲存"],planTooBig:["That image is too large — crop it and try again","圖片過大——請裁切後再試"],
+  planFail:["Could not save the plan","無法儲存基地圖"],ptPlaced:["Point placed","調查點已新增"],
+  ptFail:["Could not save the point","無法儲存調查點"],ptRemoved:["Point removed","調查點已刪除"],
+  needPlan:["Upload a site plan first","請先上傳基地圖"],needPt:["Add a survey point on the Setup tab first","請先在「設定」頁新增調查點"],
+  needTally:["Nothing tallied yet","尚未計數"],needPerson:["Plot at least one person","請至少標記一人"],
+  needScore:["Score at least one criterion","請至少評分一項準則"],
+  noPerm:["You do not have permission to save here","您沒有儲存權限"],
+  saveFail:["Could not save — check your connection","無法儲存——請檢查連線"],
+  csvSaved:["CSV saved","CSV 已儲存"],csvCancel:["Save was cancelled","已取消儲存"],
+  csvClip:["CSV copied to the clipboard","CSV 已複製到剪貼簿"],csvFail:["Could not export here","此處無法匯出"],
+  nothingExport:["Nothing to export yet","尚無資料可匯出"],
+  already:["Already added","已經新增過"],notConn:["Not connected","未連線"],
+  timeFrom:["Time read from the photo.","時間取自照片。"],
+  noTime:["No time in the photo — check the field above.","照片中沒有時間——請確認上方欄位。"],
+  noGps:["No GPS in this photo. The point on the plan still fixes where it was taken.","照片中沒有 GPS。圖面上的調查點仍可確定拍攝位置。"],
+  aiReading:["Reading the photo…","讀取照片中…"],
+  aiRate:["Too many requests just now — try again shortly.","目前請求過多——請稍後再試。"],
+  aiFail:["Could not draft from this photo. Plot by hand.","無法由此照片生成草稿，請手動標記。"],
+  aiStacked:["Drafted people are stacked at a guess position — delete any that are wrong and re-tap them in the right place.","草稿人員放在推測位置——請刪除不正確者，並在正確位置重新點選。"],
+  aiNotAvail:["AI drafting is not available here","此處無法使用 AI 草稿"],
+  needPhoto:["Take the photo first","請先拍照"],
+  hGate:["Enter your access code","輸入通行碼"],
+  pGate:["Your survey organiser gives you a link or a code.","調查負責人會提供連結或通行碼。"],
+  gateBtn:["Open survey","進入調查"],gateBad:["That code was not accepted.","通行碼不正確。"],
+  notConfigured:["This copy of the app is not connected to a sheet yet. See the setup guide in the repository.","此版本尚未連接到試算表，請參考儲存庫中的設定說明。"],
+  synced:["Synced","已同步"],syncing:["Syncing…","同步中…"],offlineS:["Offline","離線"],
+  waiting:["waiting to upload","筆待上傳"],retry:["Retry","重試"],changeCode:["Change code","更換通行碼"],
+  savedLocal:["Saved on this phone — uploading","已存在手機——上傳中"],
+  pendTag:["Waiting to upload","待上傳"],
+  roleAdmin:["Organiser","負責人"],roleSurv:["Surveyor","調查員"],
+  netFail:["Could not reach the sheet — check your connection","無法連線到試算表——請檢查網路"],
+  adminOnly:["Only the organiser can change the setup.","只有負責人可以修改設定。"],
+  notYours:["You can only delete records made on this phone.","只能刪除在這支手機上建立的紀錄。"],
+  delConfirm:["Tap again to delete","再按一次以刪除"],recDeleted:["Record deleted","紀錄已刪除"],
+  delFail:["Could not delete — you may not have permission","無法刪除——您可能沒有權限"],
+  needPlanAn:["Add a site plan and run a people-staying survey.","請先上傳基地圖並進行停留活動調查。"],
+  cred1:["Beta. Developed by Arup in collaboration with the Department of Architecture, National Taipei University of Technology, as part of the Responsible AI in Architectural Design programme.",
+         "測試版。由 Arup 與國立臺北科技大學建築系合作開發，為 Responsible AI in Architectural Design 計畫之一部分。"],
+  cred2:["The survey instruments follow the Urban95 Public Life Data Framework by Gehl and the Bernard van Leer Foundation, and the underlying Public Life Data Protocol. Adapted for a Taiwanese street context: motor-scooter counts, local weather bands, bilingual coding, and criteria worded for a dense low-rise lane rather than a plaza. Urban95 was written for mapping cities through the eyes of under-fives; this version uses the general public life age bands instead, so it is not an official Urban95 study.",
+         "調查工具依據 Gehl 與 Bernard van Leer Foundation 所發展的 Urban95 Public Life Data Framework，以及其基礎的 Public Life Data Protocol。本版本已針對台灣街道脈絡調整：加入機車計數、在地天氣分類、雙語編碼，準則文字也改以密集低層街巷為對象，而非廣場。Urban95 原為以五歲以下孩童視角測繪城市而設計；本版本改用一般公共生活年齡分組，因此並非官方 Urban95 調查。"]
+};
+
+var API=(window.ULS_API||"").trim(),CODE="",ROLE="",DEVICE="",lastSync=null,online=true,busy=false;
+var LS={get:function(k){try{return window.localStorage.getItem(k)}catch(e){return null}},
+        set:function(k,v){try{window.localStorage.setItem(k,v);return true}catch(e){return false}},
+        del:function(k){try{window.localStorage.removeItem(k)}catch(e){}}};
+DEVICE=LS.get("uls_device")||("d"+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+LS.set("uls_device",DEVICE);
+function loadOutbox(){try{return JSON.parse(LS.get("uls_outbox")||"[]")}catch(e){return []}}
+function saveOutbox(o){LS.set("uls_outbox",JSON.stringify(o))}
+var S={plan:null,planVersion:"",team:[],pts:[],server:[],recs:[]};
+var placing=false,zoom=1,logFilter="all",colorBy="posture";
+var run=null,timer=null;
+
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]})}
+function toast(m){var t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.remove()},2800)}
+function pad(n){return String(n).padStart(2,"0")}
+function localIso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function slotOf(iso){var h=new Date(iso).getHours();return h<11?"morning":h<14?"midday":h<18?"afternoon":"evening"}
+function dayType(iso){var d=new Date(iso).getDay();return d===0||d===6?"weekend":"weekday"}
+function find(list,k){for(var i=0;i<list.length;i++) if(list[i][0]===k) return list[i];return null}
+function zh(list,k){var e=find(list,k);return e?e[2]:k}
+function en(list,k){var e=find(list,k);return e?e[1]:""}
+function lab(list,k){var e=find(list,k);if(!e) return k;return e[1]===e[2]?e[1]:e[2]+" "+e[1]}
+function colorOf(list,k){var e=find(list,k);return (e&&e[3])||"#888"}
+function typeName(k){return lab(TYPES,k)}
+function newId(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+
+function shrink(file,maxPx,q){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onerror=function(){rej(new Error("read"))};
+    fr.onload=function(){
+      var img=new Image();
+      img.onerror=function(){rej(new Error("decode"))};
+      img.onload=function(){
+        var s=Math.min(1,maxPx/Math.max(img.width,img.height));
+        var w=Math.max(1,Math.round(img.width*s)),h=Math.max(1,Math.round(img.height*s));
+        var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+        cv.getContext("2d").drawImage(img,0,0,w,h);
+        res({dataUrl:cv.toDataURL("image/jpeg",q),w:w,h:h,canvas:cv});
+      };
+      img.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function blobOf(cv,q){return new Promise(function(r){cv.toBlob(function(b){r(b)},"image/jpeg",q)})}
+/* ---------- static text ---------- */
+function paintStatic(){
+  document.documentElement.lang="zh-Hant";
+  $("t-set").textContent=T(D.tabSet);$("t-sur").textContent=T(D.tabSur);
+  $("t-log").textContent=T(D.tabLog);$("t-an").textContent=T(D.tabAn);
+  $("h-plan").textContent=T(D.hPlan);$("p-plan").textContent=T(D.pPlan);
+  $("h-stu").textContent=T(D.hStu);$("p-stu").textContent=T(D.pStu);
+  $("stuAdd").textContent=T(D.addStu);$("stuNew").placeholder=T(D.namePh);
+  $("h-pts").textContent=T(D.hPts);$("p-pts").textContent=T(D.pPts);
+  $("h-cov").textContent=T(D.hCov);$("p-cov").textContent=T(D.pCov);
+  $("h-start").textContent=T(D.hStart);$("p-start").textContent=T(D.pStart);
+  $("h-log").textContent=T(D.hLog);$("exportBtn").textContent=T(D.export);
+  $("h-stay").textContent=T(D.hStay);$("p-stay").textContent=T(D.pStay);
+  $("h-who").textContent=T(D.hWho);
+  $("h-flow").textContent=T(D.hFlow);$("p-flow").textContent=T(D.pFlow);
+  $("h-qual").textContent=T(D.hQual);
+  $("cred1").textContent=T(D.cred1);$("cred2").textContent=T(D.cred2);
+  $("howSet").innerHTML=howHtml("setup");
+  $("addPtBtn").textContent=placing?T(D.tapPlan):T(D.addPt);
+  var pd=[T(D.movingD),T(D.stationaryD),T(D.qualityD)];
+  $("pickBox").innerHTML=TYPES.map(function(t,i){
+    return '<button data-t="'+t[0]+'"><strong>'+esc(typeName(t[0]))+'</strong><span>'+esc(pd[i])+'</span></button>';
+  }).join("");
+  $("pickBox").querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click",function(){startRun(b.dataset.t)});
+  });
+}
+
+/* ---------- tabs ---------- */
+var TABS=[["t-set","v-set"],["t-sur","v-sur"],["t-log","v-log"],["t-an","v-an"]];
+TABS.forEach(function(p){
+  $(p[0]).addEventListener("click",function(){
+    TABS.forEach(function(q){$(q[0]).setAttribute("aria-selected",q[0]===p[0]?"true":"false");$(q[1]).hidden=q[0]!==p[0]});
+    if(p[0]==="t-an") drawAnalysis();
+    window.scrollTo(0,0);
+  });
+});
+
+/* ---------- plan ---------- */
+function planSrc(){ return S.plan||null }
+function paintPlan(inner,pins,onClick,emptyMsg){
+  var src=planSrc();
+  if(!src){inner.innerHTML='<div class="planempty"><div><strong>'+esc(T(D.noPlan))+'</strong><p class="hint">'+esc(emptyMsg||T(D.noPlanHint))+'</p></div></div>';return false}
+  inner.innerHTML='<img src="'+esc(src)+'" alt="'+esc(T(D.hPlan))+'">'+(pins||"");
+  if(onClick) inner.querySelector("img").addEventListener("click",onClick);
+  return true;
+}
+function relXY(ev,inner){
+  var img=inner.querySelector("img"); if(!img) return null;
+  var r=img.getBoundingClientRect();
+  var x=(ev.clientX-r.left)/r.width,y=(ev.clientY-r.top)/r.height;
+  return (x<0||x>1||y<0||y>1)?null:{x:x,y:y};
+}
+document.querySelectorAll(".zoom button").forEach(function(b){
+  b.addEventListener("click",function(){
+    zoom=+b.dataset.z;
+    document.querySelectorAll(".zoom button").forEach(function(o){o.setAttribute("aria-pressed",o===b?"true":"false")});
+    $("setInner").style.width=(100*zoom)+"%";
+  });
+});
+$("planFile").addEventListener("change",function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f) return;
+  $("planUpLabel").textContent=T(D.reading);
+  shrink(f,1600,.82).then(function(r){
+    return apiPost({action:"setPlan",dataUrl:r.dataUrl});
+  }).then(function(res){
+    if(!res.ok) throw res;
+    toast(T(D.planSaved));return refresh(true);
+  }).catch(function(err){$("planUpLabel").textContent=planSrc()?T(D.replace):T(D.upload);
+     toast(err&&err.error==="too_large"?T(D.planTooBig):err&&err.error==="admin_only"?T(D.adminOnly):T(D.planFail))});
+});
+$("addPtBtn").addEventListener("click",function(){
+  if(!planSrc()){toast(T(D.needPlan));return}
+  placing=!placing;
+  this.setAttribute("aria-pressed",placing?"true":"false");
+  this.textContent=placing?T(D.tapPlan):T(D.addPt);
+  $("setMode").textContent=placing?T(D.tapWhere):"";
+});
+function setClick(ev){
+  if(!placing||ROLE!=="admin") return;
+  var p=relXY(ev,$("setInner")); if(!p) return;
+  adminCall({action:"addPoint",x:p.x,y:p.y},function(res){toast(T(D.ptPlaced)+" "+res.n)},T(D.ptFail));
+  placing=false;$("addPtBtn").setAttribute("aria-pressed","false");$("addPtBtn").textContent=T(D.addPt);$("setMode").textContent="";
+}
+function renderSetup(){
+  $("planUpLabel").textContent=planSrc()?T(D.replace):T(D.upload);
+  var pins=S.pts.map(function(s){
+    return '<div class="pin pt" style="left:'+(s.x*100).toFixed(3)+'%;top:'+(s.y*100).toFixed(3)+'%" title="'+esc(s.name)+'">'+esc(String(s.n||""))+'</div>';
+  }).join("");
+  paintPlan($("setInner"),pins,setClick);
+  $("setInner").style.width=(100*zoom)+"%";
+  renderTeam();renderCoverage();
+  var L=$("ptList");
+  if(!S.pts.length){L.innerHTML='<p class="hint">'+esc(T(D.noPts))+'</p>';return}
+  L.innerHTML="";
+  S.pts.forEach(function(s){
+    var n=S.recs.filter(function(o){return o.pointId===s.id}).length;
+    var d=document.createElement("div");d.className="row spread";
+    d.style.cssText="padding:9px 0;border-bottom:1px solid var(--line)";
+    var cnt='<span class="mono" style="font-size:12px;color:'+(n>=3?"var(--good)":"var(--ink-3)")+'">'+n+'/3</span>';
+    if(ROLE!=="admin"){
+      d.innerHTML='<span style="flex:1;min-width:110px"><span class="mono muted" style="font-size:11px">'+esc(String(s.n||""))+'</span> '+esc(s.name)+'</span>'+
+        '<span class="muted" style="font-size:13px">'+esc(s.student||"—")+'</span>'+cnt;
+      L.appendChild(d);return;
+    }
+    d.innerHTML='<input type="text" value="'+esc(s.name)+'" style="flex:1;min-width:110px">'+
+      '<select style="flex:0 1 140px"><option value="">'+esc(T(D.pickStu))+'</option>'+
+        S.team.map(function(t){return '<option value="'+esc(t)+'"'+(t===s.student?" selected":"")+'>'+esc(t)+'</option>'}).join("")+
+      '</select>'+cnt+
+      '<button class="btn danger" style="padding:7px 10px;min-height:36px">'+esc(T(D.remove))+'</button>';
+    var inp=d.querySelector("input");
+    inp.addEventListener("change",function(){adminCall({action:"updatePoint",id:s.id,name:inp.value.trim()||s.name})});
+    d.querySelector("select").addEventListener("change",function(){adminCall({action:"updatePoint",id:s.id,surveyor:this.value||""})});
+    d.querySelector("button").addEventListener("click",function(){
+      adminCall({action:"deletePoint",id:s.id},function(){toast(T(D.ptRemoved))});
+    });
+    L.appendChild(d);
+  });
+}
+function renderTeam(){
+  var L=$("stuList"); if(!L) return;
+  if(!S.team.length){L.innerHTML='<p class="hint">'+esc(T(D.noStu))+'</p>';return}
+  L.innerHTML="";
+  S.team.forEach(function(t){
+    var n=S.pts.filter(function(p){return p.student===t}).length;
+    var d=document.createElement("div");d.className="row spread";
+    d.style.cssText="padding:7px 0;border-bottom:1px solid var(--line)";
+    d.innerHTML='<strong style="font-size:14px">'+esc(t)+'</strong>'+
+      '<span class="mono muted" style="font-size:12px">'+n+' '+esc(T(D.ofPts))+'</span>'+
+      (ROLE==="admin"?'<button class="btn danger" style="padding:6px 10px;min-height:34px">'+esc(T(D.remove))+'</button>':"");
+    var rb=d.querySelector("button");
+    if(rb) rb.addEventListener("click",function(){adminCall({action:"deleteSurveyor",name:t})});
+    L.appendChild(d);
+  });
+}
+$("stuAdd").addEventListener("click",function(){
+  var v=$("stuNew").value.trim(); if(!v) return;
+  if(S.team.indexOf(v)>=0){toast(T(D.already));return}
+  adminCall({action:"addSurveyor",name:v},function(){$("stuNew").value=""});
+});
+function renderCoverage(){
+  var t=$("covTable"); if(!t) return;
+  var tb=t.querySelector("tbody");
+  if(!S.pts.length){tb.innerHTML='<tr><td class="hint">'+esc(T(D.covEmpty))+'</td></tr>';return}
+  var done=0;
+  var h='<tr><th>'+esc(T(D.colPoint))+'</th><th>'+esc(T(D.colStudent))+'</th>'+
+    TYPES.map(function(k){return '<th>'+esc(typeName(k[0]))+'</th>'}).join("")+'</tr>';
+  S.pts.forEach(function(p){
+    h+='<tr><td>'+esc(p.name)+'</td><td class="muted">'+esc(p.student||"—")+'</td>';
+    TYPES.forEach(function(k){
+      var n=S.recs.filter(function(r){return r.pointId===p.id&&r.type===k[0]}).length;
+      if(n) done++;
+      h+='<td class="n" style="color:'+(n?"var(--good)":"var(--ink-3)")+'">'+(n?(n>1?n:"✓"):"·")+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='<tr><td colspan="5" class="hint">'+done+' / '+(S.pts.length*TYPES.length)+' '+esc(T(D.covDone))+'</td></tr>';
+  tb.innerHTML=h;
+}
+
+/* ---------- survey shell ---------- */
+function startRun(type){
+  if(!S.pts.length){toast(T(D.needPt));return}
+  run={type:type,pointId:S.pts[0].id,ts:localIso(new Date()),wx:null,notes:"",
+       tally:{},modes:{},people:[],scores:{},dur:300,elapsed:0,running:false,undo:[],sel:null};
+  $("surPick").hidden=true;$("surRun").hidden=false;renderRun();
+}
+function endRun(){
+  if(timer){clearInterval(timer);timer=null}
+  run=null;$("surRun").hidden=true;$("surRun").innerHTML="";$("surPick").hidden=false;
+}
+function headerBlock(){
+  var opts=S.pts.map(function(p){return '<option value="'+esc(p.id)+'"'+(p.id===run.pointId?" selected":"")+'>'+esc(p.name)+'</option>'}).join("");
+  return '<div class="card"><div class="row spread"><h2>'+esc(typeName(run.type))+'</h2>'+
+    '<button class="btn" id="cancelRun" style="padding:7px 11px;min-height:36px">'+esc(T(D.cancel))+'</button></div>'+
+    '<label class="fld" style="margin-top:12px"><span>'+esc(T(D.point))+'</span><select id="runPoint">'+opts+'</select></label>'+
+    '<label class="fld"><span>'+esc(T(D.time))+'</span><input type="datetime-local" id="runTime" value="'+esc(run.ts)+'"></label>'+
+    '<div class="flab">'+esc(T(D.weather))+'</div><div class="chips" id="runWx">'+
+      WX.map(function(w,i){return '<button class="chip" type="button" data-i="'+i+'" aria-pressed="'+(run.wx===w[0])+'">'+esc(T(w))+'</button>'}).join("")+
+    '</div></div>';
+}
+function notesBlock(){
+  return '<div class="card"><h2>'+esc(T(D.hNotes))+'</h2>'+
+    '<textarea id="runNotes" placeholder="'+esc(T(D.notesPh))+'">'+esc(run.notes)+'</textarea>'+
+    '<button class="btn primary wide" id="saveRun" style="margin-top:12px">'+esc(T(D.save))+'</button></div>';
+}
+function wireCommon(){
+  $("cancelRun").addEventListener("click",endRun);
+  $("runPoint").addEventListener("change",function(){run.pointId=this.value;if(run.type==="stationary")renderRun()});
+  $("runTime").addEventListener("change",function(){run.ts=this.value});
+  var wx=$("runWx");
+  wx.querySelectorAll(".chip").forEach(function(b){
+    b.addEventListener("click",function(){
+      var code=WX[+b.dataset.i][0];
+      run.wx=run.wx===code?null:code;
+      wx.querySelectorAll(".chip").forEach(function(o){o.setAttribute("aria-pressed",WX[+o.dataset.i][0]===run.wx?"true":"false")});
+    });
+  });
+  $("runNotes").addEventListener("input",function(){run.notes=this.value});
+  $("saveRun").addEventListener("click",saveRun);
+}
+
+/* ---------- moving ---------- */
+function movingBody(){
+  var h='<div class="card"><h2>'+esc(T(D.hPeriod))+'</h2><p class="hint">'+esc(T(D.pPeriod))+'</p>'+
+    '<div class="row spread" style="margin-top:12px"><span class="timer" id="clock">05:00</span>'+
+    '<button class="btn primary" id="startStop">'+esc(T(D.start))+'</button></div>'+
+    '<label class="fld" style="margin-top:12px"><span>'+esc(T(D.minutes))+'</span>'+
+    '<input type="number" id="durMin" min="1" max="60" value="'+(run.dur/60)+'"></label></div>';
+  h+='<div class="card"><h2>'+esc(T(D.hTally))+'</h2><p class="hint">'+esc(T(D.pTally))+'</p>'+
+    '<div class="tally" id="tgrid" style="grid-template-columns:62px repeat('+GEN.length+',1fr)">'+
+    '<div class="hcell"></div>'+GEN.map(function(g){return '<div class="hcell">'+esc(lab(GEN,g[0]))+'</div>'}).join("");
+  AGES.forEach(function(a){
+    h+='<div class="rcell">'+esc(a[1])+'</div>';
+    GEN.forEach(function(g){
+      var k=a[0]+"|"+g[0],v=run.tally[k]||0;
+      h+='<button type="button" data-k="'+k+'" class="'+(v?"":"z")+'" aria-label="'+esc(a[1]+" "+lab(GEN,g[0]))+'">'+v+'</button>';
+    });
+  });
+  h+='</div><div class="row spread" style="margin-top:12px"><span class="mono" style="font-size:24px;font-weight:600" id="tTotal">0</span>'+
+     '<button class="btn" id="undoBtn">'+esc(T(D.undo))+'</button></div></div>';
+  h+='<div class="card"><h2>'+esc(T(D.hModes))+'</h2><p class="hint">'+esc(T(D.pModes))+'</p>'+
+     '<div class="grid3" style="margin-top:10px">'+MODES.map(function(m){
+       return '<div class="ctr" data-m="'+m[0]+'"><div class="lab">'+esc(lab(MODES,m[0]))+'</div><div class="ops">'+
+         '<button type="button" data-d="-1" aria-label="−">&minus;</button><span class="val">'+(run.modes[m[0]]||0)+'</span>'+
+         '<button type="button" data-d="1" aria-label="+">+</button></div></div>';
+     }).join("")+'</div></div>';
+  return h;
+}
+function wireMoving(){
+  var g=$("tgrid");
+  g.querySelectorAll("button[data-k]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var k=b.dataset.k;run.tally[k]=(run.tally[k]||0)+1;run.undo.push(k);
+      b.textContent=run.tally[k];b.classList.remove("z");tTot();
+    });
+  });
+  $("undoBtn").addEventListener("click",function(){
+    var k=run.undo.pop(); if(!k){toast(T(D.nothingUndo));return}
+    run.tally[k]=Math.max(0,(run.tally[k]||0)-1);
+    var b=g.querySelector('button[data-k="'+k+'"]');
+    if(b){b.textContent=run.tally[k];if(!run.tally[k])b.classList.add("z")}
+    tTot();
+  });
+  document.querySelectorAll("#surRun .ctr[data-m]").forEach(function(c){
+    c.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){
+        var m=c.dataset.m;
+        run.modes[m]=Math.max(0,(run.modes[m]||0)+(+b.dataset.d));
+        c.querySelector(".val").textContent=run.modes[m];
+      });
+    });
+  });
+  $("durMin").addEventListener("change",function(){
+    run.dur=Math.max(60,Math.min(3600,(+this.value||5)*60));
+    if(!run.running){run.elapsed=0;paintClock()}
+  });
+  $("startStop").addEventListener("click",function(){
+    run.running=!run.running;this.textContent=run.running?T(D.pause):T(D.start);
+    if(run.running){timer=setInterval(function(){
+      run.elapsed++;paintClock();
+      if(run.elapsed>=run.dur){run.running=false;clearInterval(timer);timer=null;
+        $("startStop").textContent=T(D.start);toast(T(D.periodDone))}
+    },1000)}
+    else if(timer){clearInterval(timer);timer=null}
+  });
+  paintClock();tTot();
+}
+function paintClock(){
+  var left=Math.max(0,run.dur-run.elapsed),c=$("clock");
+  if(c) c.textContent=pad(Math.floor(left/60))+":"+pad(left%60);
+}
+function tTot(){var t=0;for(var k in run.tally) t+=run.tally[k];var e=$("tTotal");if(e)e.textContent=t}
+
+/* ---------- stationary ---------- */
+function stationaryBody(){
+  return '<div class="card"><h2>'+esc(T(D.hPlot))+'</h2><p class="hint">'+esc(T(D.pPlot))+'</p>'+
+    '<div class="planbox" style="margin-top:12px"><div class="planinner" id="stInner"></div></div>'+
+    '<div id="stSheet"></div>'+
+    '<div class="row spread" style="margin-top:12px"><span class="mono" style="font-size:24px;font-weight:600" id="pCount">'+run.people.length+'</span>'+
+    '</div><div class="plist" id="pList"></div></div>';
+}
+function wireStationary(){
+  renderStPlan();
+  renderPList();
+}
+function renderStPlan(){
+  var pt=S.pts.filter(function(p){return p.id===run.pointId})[0];
+  var pins=(pt?'<div class="pin pt" style="left:'+(pt.x*100).toFixed(3)+'%;top:'+(pt.y*100).toFixed(3)+'%">'+esc(String(pt.n||""))+'</div>':"")+
+    run.people.map(function(p,i){
+      return '<div class="pin person'+(run.sel===i?" sel":"")+'" data-i="'+i+'" style="left:'+(p.x*100).toFixed(3)+'%;top:'+(p.y*100).toFixed(3)+
+        '%;background:'+colorOf(POST,p.posture)+'"></div>';
+    }).join("");
+  var inner=$("stInner"); if(!inner) return;
+  paintPlan(inner,pins,function(ev){
+    var p=relXY(ev,inner); if(!p) return;
+    run.people.push({x:p.x,y:p.y,age:"25-44",gender:"u",posture:"standing",acts:[],group:1,prop:"none",assist:false});
+    run.sel=run.people.length-1;
+    renderStPlan();renderSheet();renderPList();
+  });
+  inner.querySelectorAll(".pin.person").forEach(function(el){
+    el.addEventListener("click",function(ev){ev.stopPropagation();run.sel=+el.dataset.i;renderStPlan();renderSheet()});
+  });
+  var c=$("pCount"); if(c) c.textContent=run.people.length;
+}
+function renderSheet(){
+  var box=$("stSheet"); if(!box) return;
+  if(run.sel==null||!run.people[run.sel]){box.innerHTML="";return}
+  var p=run.people[run.sel];
+  function chips(id,list,sel,multi){
+    return '<div class="chips" id="'+id+'">'+list.map(function(o){
+      var on=multi?(sel.indexOf(o[0])>=0):(sel===o[0]);
+      var main=zh(list,o[0]),a=en(list,o[0]);
+      return '<button class="chip" type="button" data-v="'+o[0]+'" aria-pressed="'+on+'">'+esc(main)+
+        (a&&a!==main?'<span class="alt">'+esc(a)+'</span>':"")+'</button>';
+    }).join("")+'</div>';
+  }
+  box.innerHTML='<div class="sheet"><div class="row spread"><strong>'+esc(T(D.person))+' '+(run.sel+1)+'</strong>'+
+    '<button class="btn danger" id="delP" style="padding:6px 10px;min-height:34px">'+esc(T(D.del))+'</button></div>'+
+    '<h3>'+esc(T(D.age))+'</h3>'+chips("cAge",AGES,p.age)+
+    '<h3>'+esc(T(D.gender))+'</h3>'+chips("cGen",GEN,p.gender)+
+    '<h3>'+esc(T(D.posture))+'</h3>'+chips("cPost",POST,p.posture)+
+    '<h3>'+esc(T(D.doing))+'</h3>'+chips("cAct",ACTS,p.acts,true)+
+    '<h3>'+esc(T(D.withW))+'</h3>'+chips("cProp",PROPS,p.prop)+
+    '<h3>'+esc(T(D.groupMob))+'</h3><div class="row">'+
+      '<label style="flex:1;min-width:120px"><span class="flab">'+esc(T(D.groupSize))+'</span>'+
+      '<input type="number" id="pGroup" min="1" max="20" value="'+(p.group||1)+'"></label>'+
+      '<button class="chip" type="button" id="pAssist" aria-pressed="'+(!!p.assist)+'" style="margin-top:18px">'+esc(T(D.usingAid))+'</button></div>'+
+    '<button class="btn wide" id="doneP" style="margin-top:12px">'+esc(T(D.done))+'</button></div>';
+  function bind(id,field,multi){
+    var c=$(id); if(!c) return;
+    c.querySelectorAll(".chip").forEach(function(b){
+      b.addEventListener("click",function(){
+        var v=b.dataset.v;
+        if(multi){
+          var i=p[field].indexOf(v);
+          if(i>=0) p[field].splice(i,1); else p[field].push(v);
+          c.querySelectorAll(".chip").forEach(function(o){o.setAttribute("aria-pressed",p[field].indexOf(o.dataset.v)>=0?"true":"false")});
+        }else{
+          p[field]=v;
+          c.querySelectorAll(".chip").forEach(function(o){o.setAttribute("aria-pressed",o.dataset.v===v?"true":"false")});
+          if(field==="posture") renderStPlan();
+        }
+        renderPList();
+      });
+    });
+  }
+  bind("cAge","age");bind("cGen","gender");bind("cPost","posture");bind("cAct","acts",true);bind("cProp","prop");
+  $("pGroup").addEventListener("change",function(){p.group=Math.max(1,+this.value||1)});
+  $("pAssist").addEventListener("click",function(){p.assist=!p.assist;this.setAttribute("aria-pressed",p.assist?"true":"false")});
+  $("delP").addEventListener("click",function(){run.people.splice(run.sel,1);run.sel=null;renderStPlan();renderSheet();renderPList()});
+  $("doneP").addEventListener("click",function(){run.sel=null;renderStPlan();renderSheet()});
+}
+function renderPList(){
+  var L=$("pList"); if(!L) return;
+  if(!run.people.length){L.innerHTML='<p class="hint">'+esc(T(D.noPlot))+'</p>';return}
+  L.innerHTML="";
+  run.people.forEach(function(p,i){
+    var d=document.createElement("div");d.className="prow";
+    d.innerHTML='<span class="sw" style="background:'+colorOf(POST,p.posture)+'"></span>'+
+      '<span class="mono muted" style="font-size:11px">'+(i+1)+'</span>'+
+      '<span style="cursor:pointer">'+esc(lab(AGES,p.age))+' · '+esc(lab(GEN,p.gender))+' · '+esc(lab(POST,p.posture))+
+      (p.acts.length?' · '+esc(p.acts.map(function(a){return lab(ACTS,a)}).join(", ")):"")+'</span>'+
+      '<button class="x" aria-label="×">&times;</button>';
+    d.querySelectorAll("span")[2].addEventListener("click",function(){run.sel=i;renderStPlan();renderSheet()});
+    d.querySelector(".x").addEventListener("click",function(){run.people.splice(i,1);if(run.sel===i)run.sel=null;renderStPlan();renderSheet();renderPList()});
+    L.appendChild(d);
+  });
+}
+/* ---------- quality ---------- */
+function qualityBody(){
+  var h='<div class="card"><h2>'+esc(T(D.hCrit))+'</h2><p class="hint">'+esc(T(D.pCrit))+'</p>';
+  QUAL.forEach(function(grp,gi){
+    h+='<h3>'+esc(T(grp[0]))+'</h3>';
+    grp[1].forEach(function(q,qi){
+      var k="q"+gi+"_"+qi,v=run.scores[k];
+      h+='<div class="q"><div class="qt">'+esc(q[1])+'</div><div class="qa">'+esc(q[0])+'</div>'+
+        '<div class="face" data-k="'+k+'">'+
+        '<button type="button" class="y" data-v="2" aria-pressed="'+(v===2)+'">'+esc(T(D.yes))+'</button>'+
+        '<button type="button" class="p" data-v="1" aria-pressed="'+(v===1)+'">'+esc(T(D.partly))+'</button>'+
+        '<button type="button" class="n" data-v="0" aria-pressed="'+(v===0)+'">'+esc(T(D.no))+'</button></div></div>';
+    });
+  });
+  return h+'</div>';
+}
+function wireQuality(){
+  document.querySelectorAll("#surRun .face").forEach(function(f){
+    f.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){
+        var k=f.dataset.k,v=+b.dataset.v;
+        if(run.scores[k]===v) delete run.scores[k]; else run.scores[k]=v;
+        f.querySelectorAll("button").forEach(function(o){o.setAttribute("aria-pressed",(+o.dataset.v)===run.scores[k]?"true":"false")});
+      });
+    });
+  });
+}
+
+/* ---------- render + save ---------- */
+function renderRun(){
+  var body=run.type==="moving"?movingBody():run.type==="stationary"?stationaryBody():qualityBody();
+  $("surRun").innerHTML=headerBlock()+howHtml(run.type)+body+notesBlock();
+  wireCommon();
+  if(run.type==="moving") wireMoving();
+  else if(run.type==="stationary") wireStationary();
+  else wireQuality();
+}
+function saveRun(){
+  var pt=S.pts.filter(function(p){return p.id===run.pointId})[0];
+  if(!pt){toast(T(D.needPt));return}
+  var ts=new Date($("runTime").value||run.ts).toISOString();
+  var local=$("runTime").value||run.ts;
+  var rec={id:newId("r"),type:run.type,pointId:pt.id,pointName:pt.name,student:pt.student||null,
+    ts:ts,tsLocal:local.replace("T"," "),slot:slotOf(ts),dayType:dayType(ts),wx:run.wx||null,notes:run.notes||null,
+    device:DEVICE};
+  if(run.type==="moving"){
+    var t=0;for(var k in run.tally) t+=run.tally[k];
+    if(!t){toast(T(D.needTally));return}
+    rec.tally=run.tally;rec.modes=run.modes;rec.total=t;rec.durationSec=run.dur;rec.countedSec=Math.min(run.elapsed||run.dur,run.dur);
+  }else if(run.type==="stationary"){
+    if(!run.people.length){toast(T(D.needPerson));return}
+    rec.people=run.people;rec.total=run.people.length;
+  }else{
+    var n=Object.keys(run.scores).length;
+    if(!n){toast(T(D.needScore));return}
+    rec.scores=run.scores;rec.scored=n;
+    rec.total=Object.keys(run.scores).reduce(function(a,kk){return a+run.scores[kk]},0);
+  }
+  var ob=loadOutbox();ob.push(rec);saveOutbox(ob);
+  toast(T(D.savedLocal));endRun();mergeRecs();renderAll();flushOutbox();
+}
+
+/* ---------- log ---------- */
+function renderLog(){
+  var f=$("logFilter");
+  f.innerHTML="";
+  [["all",T(D.all)]].concat(TYPES.map(function(t){return [t[0],typeName(t[0])]})).forEach(function(p){
+    var b=document.createElement("button");b.className="chip";b.type="button";b.dataset.v=p[0];b.textContent=p[1];
+    b.setAttribute("aria-pressed",logFilter===p[0]?"true":"false");
+    b.addEventListener("click",function(){logFilter=p[0];renderLog()});
+    f.appendChild(b);
+  });
+  var rows=S.recs.filter(function(o){return logFilter==="all"||o.type===logFilter}).sort(function(a,b){return a.ts<b.ts?1:-1});
+  var L=$("logList");
+  if(!rows.length){L.innerHTML='<p class="hint">'+esc(T(D.nothingYet))+'</p>';return}
+  L.innerHTML="";
+  rows.forEach(function(o){
+    var d=document.createElement("div");d.className="logitem";
+    var extra="";
+    if(o.type==="stationary"){
+      var byP={};(o.people||[]).forEach(function(p){byP[p.posture]=(byP[p.posture]||0)+1});
+      extra='<div class="bar">'+POST.map(function(p){
+        var n=byP[p[0]]||0;return n?'<i style="width:'+(n/o.total*100)+'%;background:'+p[3]+'"></i>':""}).join("")+'</div>';
+    }else if(o.type==="quality"){
+      extra='<div class="bar"><i style="width:'+(o.total/(o.scored*2)*100)+'%;background:var(--good)"></i></div>';
+    }
+    var unit=o.type==="quality"?(T(D.scored)+" "+o.total+" / "+(o.scored*2)):(o.total+" "+T(D.people));
+    d.innerHTML=
+      '<div class="meta"><span class="pill">'+esc(typeName(o.type))+'</span> <strong>'+esc(o.pointName||"—")+'</strong>'+
+      (o.student?' <span class="muted">· '+esc(o.student)+'</span>':"")+'<br>'+
+      '<span class="mono muted" style="font-size:12px">'+esc(new Date(o.ts).toLocaleString())+'</span><br>'+
+      '<span class="mono" style="font-size:17px;font-weight:600">'+esc(unit)+'</span> '+
+      (o.pending?'<span class="pill pend">'+esc(T(D.pendTag))+'</span>':"")+
+      extra+(o.notes?'<p class="hint">'+esc(o.notes)+'</p>':"")+
+      ((ROLE==="admin"||o.pending||o.device===DEVICE)?
+        '<div style="margin-top:8px"><button class="btn danger delrec" type="button" style="padding:5px 10px;min-height:32px;font-size:12px">'+
+        esc(T(D.del))+'</button></div>':"")+'</div>';
+    var db_=d.querySelector(".delrec"),armT=null;
+    if(db_) db_.addEventListener("click",function(){
+      if(!db_.dataset.armed){
+        db_.dataset.armed="1";db_.textContent=T(D.delConfirm);
+        db_.style.background="var(--signal)";db_.style.color="#fff";db_.style.borderColor="var(--signal)";
+        armT=setTimeout(function(){delete db_.dataset.armed;db_.textContent=T(D.del);
+          db_.style.background="";db_.style.color="";db_.style.borderColor=""},4000);
+        return;
+      }
+      clearTimeout(armT);db_.disabled=true;
+      if(o.pending){
+        saveOutbox(loadOutbox().filter(function(x){return x.id!==o.id}));
+        toast(T(D.recDeleted));mergeRecs();renderAll();return;
+      }
+      apiPost({action:"deleteRecord",id:o.id,device:DEVICE}).then(function(res){
+        if(!res.ok){db_.disabled=false;toast(res.error==="not_yours"?T(D.notYours):T(D.delFail));return}
+        toast(T(D.recDeleted));refresh();
+      }).catch(function(){db_.disabled=false;toast(T(D.netFail))});
+    });
+    L.appendChild(d);
+  });
+}
+function csvCell(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+$("exportBtn").addEventListener("click",function(){
+  if(!S.recs.length){toast(T(D.nothingExport));return}
+  var out=[];
+  out.push("# Urban Life Survey Mapping — export. Codes are stable English; see the code book at the foot of this file.");
+  out.push("","# People moving / 人流計數 — one row per record");
+  out.push(["record_id","point","surveyor","time","day_type","slot","weather","counted_seconds","total"]
+    .concat(AGES.map(function(a){return GEN.map(function(g){return "n_"+a[0]+"_"+g[0]})}).reduce(function(a,b){return a.concat(b)},[]))
+    .concat(MODES.map(function(m){return "mode_"+m[0]})).concat(["notes","observer"]).join(","));
+  S.recs.filter(function(r){return r.type==="moving"}).forEach(function(r){
+    var row=[r.id,r.pointName,r.student||"",r.ts,r.dayType,r.slot,r.wx||"",r.countedSec||"",r.total];
+    AGES.forEach(function(a){GEN.forEach(function(g){row.push((r.tally||{})[a[0]+"|"+g[0]]||0)})});
+    MODES.forEach(function(m){row.push((r.modes||{})[m[0]]||0)});
+    row.push(r.notes||"",r.by||"");
+    out.push(row.map(csvCell).join(","));
+  });
+  out.push("","# People staying / 停留活動 — one row per person");
+  out.push(["record_id","point","surveyor","time","day_type","slot","weather","person","x","y","age","gender","posture","activities","group_size","mobility_aid","with","observer"].join(","));
+  S.recs.filter(function(r){return r.type==="stationary"}).forEach(function(r){
+    (r.people||[]).forEach(function(p,i){
+      out.push([r.id,r.pointName,r.student||"",r.ts,r.dayType,r.slot,r.wx||"",i+1,p.x.toFixed(4),p.y.toFixed(4),
+        p.age,p.gender,p.posture,(p.acts||[]).join(";"),p.group||1,p.assist?1:0,p.prop||"none",r.by||""].map(csvCell).join(","));
+    });
+  });
+  out.push("","# Quality criteria / 空間品質 — one row per record. 2 = yes, 1 = partly, 0 = no");
+  var qh=[];QUAL.forEach(function(g,gi){g[1].forEach(function(q,qi){qh.push("q"+gi+"_"+qi)})});
+  out.push(["record_id","point","surveyor","time","weather","score","max"].concat(qh).concat(["notes","observer"]).join(","));
+  S.recs.filter(function(r){return r.type==="quality"}).forEach(function(r){
+    out.push([r.id,r.pointName,r.student||"",r.ts,r.wx||"",r.total,(r.scored||0)*2]
+      .concat(qh.map(function(k){return (r.scores||{})[k]==null?"":r.scores[k]})).concat([r.notes||"",r.by||""]).map(csvCell).join(","));
+  });
+  out.push("","# Code book / 編碼對照","code,group,english,chinese");
+  [["age",AGES],["gender",GEN],["mode",MODES],["posture",POST],["activity",ACTS],["with",PROPS]].forEach(function(s){
+    s[1].forEach(function(o){out.push([o[0],s[0],o[1],o[2]].map(csvCell).join(","))});
+  });
+  WX.forEach(function(w){out.push([w[0],"weather",w[0],w[1]].map(csvCell).join(","))});
+  QUAL.forEach(function(g,gi){g[1].forEach(function(q,qi){
+    out.push(["q"+gi+"_"+qi,g[0][0],q[0],q[1]].map(csvCell).join(","))})});
+  var csv=out.join("\n");
+  try{
+    var blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download="urban-life-survey-"+localIso(new Date()).slice(0,10)+".csv";
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+    toast(T(D.csvSaved));
+  }catch(e){toast(T(D.csvFail))}
+});
+
+/* ---------- analysis ---------- */
+function drawAnalysis(){
+  var cb=$("colorBy");
+  cb.innerHTML="";
+  [["posture",T(D.byPosture)],["age",T(D.byAge)],["gender",T(D.byGender)]].forEach(function(o){
+    var b=document.createElement("button");b.className="chip";b.type="button";b.dataset.v=o[0];b.textContent=o[1];
+    b.setAttribute("aria-pressed",colorBy===o[0]?"true":"false");
+    b.addEventListener("click",function(){colorBy=o[0];drawAnalysis()});
+    cb.appendChild(b);
+  });
+  var people=[];
+  S.recs.filter(function(r){return r.type==="stationary"}).forEach(function(r){(r.people||[]).forEach(function(p){people.push(p)})});
+  var AGEC=["#d9e8f5","#9dc6e4","#5b9bcc","#2d6ca2","#1c4a74","#0f2d49"];
+  var GENC={f:"#c7392b",m:"#2d6ca2",u:"#8a948e"};
+  function pColor(p){
+    if(colorBy==="posture") return colorOf(POST,p.posture);
+    if(colorBy==="gender") return GENC[p.gender]||"#888";
+    for(var i=0;i<AGES.length;i++) if(AGES[i][0]===p.age) return AGEC[i];
+    return "#888";
+  }
+  paintPlan($("anInner"),people.map(function(p){
+    return '<div class="pin person" style="left:'+(p.x*100).toFixed(3)+'%;top:'+(p.y*100).toFixed(3)+'%;background:'+pColor(p)+'"></div>';
+  }).join(""),null,T(D.needPlanAn));
+  var lg=colorBy==="posture"?POST.map(function(p){return [lab(POST,p[0]),p[3]]}):
+         colorBy==="gender"?GEN.map(function(g){return [lab(GEN,g[0]),GENC[g[0]]]}):
+         AGES.map(function(a,i){return [a[1],AGEC[i]]});
+  $("anLegend").innerHTML=people.length?lg.map(function(l){return '<span><i style="background:'+l[1]+'"></i>'+esc(l[0])+'</span>'}).join(""):"";
+
+  var dc=$("demoChart");
+  if(!people.length) dc.innerHTML='<p class="hint">'+esc(T(D.noStay))+'</p>';
+  else{
+    var h="";
+    [[T(D.age),AGES,"age",function(i){return AGEC[i]}],
+     [T(D.gender),GEN,"gender",function(i,k){return GENC[k]}],
+     [T(D.posture),POST,"posture",function(i,k){return colorOf(POST,k)}]].forEach(function(dim){
+      var counts={};people.forEach(function(p){counts[p[dim[2]]]=(counts[p[dim[2]]]||0)+1});
+      h+='<h3>'+esc(dim[0])+'</h3><div class="bar" style="height:14px">'+
+        dim[1].map(function(o,i){var n=counts[o[0]]||0;
+          return n?'<i style="width:'+(n/people.length*100)+'%;background:'+dim[3](i,o[0])+'"></i>':""}).join("")+'</div>'+
+        '<div class="legend">'+dim[1].map(function(o,i){var n=counts[o[0]]||0;
+          return n?'<span><i style="background:'+dim[3](i,o[0])+'"></i>'+esc(lab(dim[1],o[0]))+' '+n+'</span>':""}).join("")+'</div>';
+    });
+    var acts={};people.forEach(function(p){(p.acts||[]).forEach(function(a){acts[a]=(acts[a]||0)+1})});
+    var ak=Object.keys(acts).sort(function(a,b){return acts[b]-acts[a]});
+    if(ak.length) h+='<h3>'+esc(T(D.activities))+'</h3><table><tbody>'+ak.map(function(k){
+      return '<tr><td>'+esc(lab(ACTS,k))+'</td><td class="n">'+acts[k]+'</td></tr>'}).join("")+'</tbody></table>';
+    dc.innerHTML=h;
+  }
+
+  var fc=$("flowChart"),mv=S.recs.filter(function(r){return r.type==="moving"});
+  if(!mv.length) fc.innerHTML='<p class="hint">'+esc(T(D.noMove))+'</p>';
+  else{
+    var byPt={};
+    mv.forEach(function(r){(byPt[r.pointName]=byPt[r.pointName]||[]).push(r.total/(r.countedSec||r.durationSec||300)*3600)});
+    var names=Object.keys(byPt),mx=0;
+    names.forEach(function(n){byPt[n].forEach(function(v){if(v>mx)mx=v})});
+    fc.innerHTML=names.map(function(n){
+      var avg=byPt[n].reduce(function(a,b){return a+b},0)/byPt[n].length;
+      return '<div style="margin-bottom:11px"><div class="row spread"><strong style="font-size:14px">'+esc(n)+'</strong>'+
+        '<span class="mono">'+Math.round(avg)+' <span class="muted" style="font-size:12px">'+esc(T(D.perHour))+'</span></span></div>'+
+        '<div class="bar" style="height:11px"><i style="width:'+(avg/(mx||1)*100)+'%;background:var(--accent)"></i></div></div>';
+    }).join("")+'<p class="hint">'+esc(T(D.avgOf))+' '+mv.length+' '+esc(T(D.countPeriods))+'</p>';
+  }
+
+  var qc=$("qualChart"),qs=S.recs.filter(function(r){return r.type==="quality"});
+  if(!qs.length) qc.innerHTML='<p class="hint">'+esc(T(D.noQual))+'</p>';
+  else{
+    var h2="";
+    QUAL.forEach(function(g,gi){
+      h2+='<h3>'+esc(T(g[0]))+'</h3>';
+      g[1].forEach(function(q,qi){
+        var k="q"+gi+"_"+qi,vals=qs.map(function(r){return (r.scores||{})[k]}).filter(function(v){return v!=null});
+        if(!vals.length) return;
+        var avg=vals.reduce(function(a,b){return a+b},0)/vals.length;
+        var col=avg>=1.5?"var(--good)":avg>=.75?"var(--warn)":"var(--signal)";
+        h2+='<div style="margin-bottom:9px"><div class="row spread"><span style="font-size:13px">'+esc(T(q))+'</span>'+
+          '<span class="mono muted" style="font-size:12px">'+avg.toFixed(1)+'</span></div>'+
+          '<div class="bar" style="height:8px"><i style="width:'+(avg/2*100)+'%;background:'+col+'"></i></div></div>';
+      });
+    });
+    qc.innerHTML=h2+'<p class="hint">'+esc(T(D.meanOf))+' '+qs.length+' '+esc(T(D.walkthroughs))+'</p>';
+  }
+
+
+}
+
+/* ---------- sheet API ---------- */
+function apiGet(params){
+  var q=Object.keys(params).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(params[k])}).join("&");
+  return fetch(API+(API.indexOf("?")>=0?"&":"?")+q,{method:"GET",redirect:"follow",cache:"no-store"})
+    .then(function(r){if(!r.ok) throw new Error("http "+r.status);return r.json()});
+}
+function apiPost(body){
+  body.k=CODE;
+  // text/plain keeps this a "simple" request, so Apps Script needs no CORS preflight
+  return fetch(API,{method:"POST",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})
+    .then(function(r){if(!r.ok) throw new Error("http "+r.status);return r.json()});
+}
+function adminCall(body,onOk,failMsg){
+  if(ROLE!=="admin"){toast(T(D.adminOnly));return}
+  setSync("warn",T(D.syncing));
+  apiPost(body).then(function(res){
+    if(!res.ok){toast(res.error==="admin_only"?T(D.adminOnly):(failMsg||T(D.saveFail)));setSync("ok");return}
+    if(onOk) onOk(res);
+    refresh();
+  }).catch(function(){toast(T(D.netFail));setSync("bad")});
+}
+function mergeRecs(){
+  var ids={},out=[];
+  S.server.forEach(function(r){ids[r.id]=1;out.push(r)});
+  loadOutbox().forEach(function(r){if(!ids[r.id]){var c=Object.assign({},r);c.pending=true;out.push(c)}});
+  S.recs=out;
+}
+function renderAll(){
+  document.body.classList.toggle("role-surveyor",ROLE!=="admin");
+  renderSetup();renderLog();
+  if(!$("v-an").hidden) drawAnalysis();
+  setSync();
+}
+function setSync(state,text){
+  var bar=$("syncbar"),n=loadOutbox().length;
+  if(!state) state=!online?"bad":n?"warn":"ok";
+  bar.className="syncbar "+state;
+  var t=text||(!online?T(D.offlineS):T(D.synced)+(lastSync?" "+pad(lastSync.getHours())+":"+pad(lastSync.getMinutes()):""));
+  if(n) t+=" · "+n+" "+T(D.waiting);
+  if(ROLE) t+=" · "+T(ROLE==="admin"?D.roleAdmin:D.roleSurv);
+  $("syncText").textContent=t;
+  $("syncBtn").hidden=!(n||!online);$("syncBtn").textContent=T(D.retry);
+  $("codeBtn").hidden=!CODE;$("codeBtn").textContent=T(D.changeCode);
+}
+function flushOutbox(){
+  var ob=loadOutbox(); if(!ob.length||!CODE) return Promise.resolve();
+  var next=ob[0];
+  return apiPost({action:"addRecord",record:next}).then(function(res){
+    if(res.ok||res.error==="bad_record"||res.error==="bad_id"||res.error==="unknown_point"||res.error==="no_people"||res.error==="no_scores"){
+      saveOutbox(loadOutbox().filter(function(x){return x.id!==next.id}));
+      if(!res.ok) toast(T(D.saveFail)+" ("+res.error+")");
+      return flushOutbox();
+    }
+    throw new Error(res.error||"upload");
+  }).then(function(){return refresh()}).catch(function(){online=false;setSync()});
+}
+function refresh(force){
+  if(!API||!CODE||busy) return Promise.resolve();
+  busy=true;
+  return apiGet({k:CODE,action:"all"}).then(function(res){
+    busy=false;
+    if(!res.ok){
+      if(res.error==="bad_code"){LS.del("uls_code");CODE="";ROLE="";showGate(T(D.gateBad));}
+      return;
+    }
+    online=true;lastSync=new Date();ROLE=res.role;
+    S.pts=(res.points||[]).map(function(p){p.student=p.surveyor||"";return p}).sort(function(a,b){return a.n-b.n});
+    S.team=res.surveyors||[];
+    S.server=res.records||[];
+    mergeRecs();
+    var wantPlan=res.planVersion&&(force||res.planVersion!==S.planVersion);
+    if(!res.planVersion){S.plan=null;S.planVersion=""}
+    renderAll();
+    if(wantPlan) return loadPlan(res.planVersion);
+  }).catch(function(){busy=false;online=false;setSync()});
+}
+function loadPlan(version){
+  var cached=LS.get("uls_plan_v")===version?LS.get("uls_plan"):null;
+  if(cached){S.plan=cached;S.planVersion=version;renderAll();return Promise.resolve()}
+  return apiGet({k:CODE,action:"plan"}).then(function(res){
+    if(res.ok&&res.plan){
+      S.plan=res.plan.dataUrl;S.planVersion=res.plan.version;
+      LS.set("uls_plan",S.plan);LS.set("uls_plan_v",S.planVersion);
+      renderAll();
+    }
+  }).catch(function(){});
+}
+function showGate(err){
+  $("gate").hidden=false;
+  ["v-set","v-sur","v-log","v-an"].forEach(function(id){$(id).hidden=true});
+  document.querySelector("nav").hidden=true;
+  $("h-gate").textContent=T(D.hGate);$("p-gate").textContent=T(D.pGate);
+  $("gateBtn").textContent=T(D.gateBtn);$("gateErr").textContent=err||"";
+  setSync("bad",T(D.offlineS));
+}
+function enter(code){
+  CODE=code;LS.set("uls_code",code);
+  $("gate").hidden=true;document.querySelector("nav").hidden=false;
+  $("t-set").click();
+  refresh(true).then(flushOutbox);
+}
+$("gateBtn").addEventListener("click",function(){var v=$("gateCode").value.trim();if(v) enter(v)});
+$("gateCode").addEventListener("keydown",function(e){if(e.key==="Enter") $("gateBtn").click()});
+$("syncBtn").addEventListener("click",function(){online=true;setSync("warn",T(D.syncing));flushOutbox().then(function(){return refresh()})});
+$("codeBtn").addEventListener("click",function(){LS.del("uls_code");CODE="";ROLE="";showGate("")});
+window.addEventListener("online",function(){online=true;flushOutbox()});
+window.addEventListener("offline",function(){online=false;setSync()});
+setInterval(function(){if(document.visibilityState==="visible"){flushOutbox();refresh()}},45000);
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible") refresh()});
+
+/* ---------- boot ---------- */
+paintStatic();mergeRecs();renderAll();
+function offline(m){var b=$("offline");b.hidden=false;b.innerHTML=m}
+(function boot(){
+  if(!API){offline(esc(T(D.notConfigured)));setSync("bad",T(D.offlineS));return}
+  // the code can arrive in the link (?k=… or #k=…); keep it, then tidy it out of the address bar
+  var m=/[?&#]k=([A-Za-z0-9]+)/.exec(location.search+location.hash);
+  if(m){LS.set("uls_code",m[1]);try{history.replaceState(null,"",location.pathname)}catch(e){}}
+  var c=LS.get("uls_code");
+  if(c) enter(c); else showGate("");
+})();
+})();
+</script>
+</body>
+</html>
