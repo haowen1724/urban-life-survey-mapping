@@ -575,6 +575,7 @@ var D={
   needPhoto:["Take the photo first","請先拍照"],
   setMe:["This is me","這是我"],meTag:["You","你"],addMe:["Add my name","新增我的名字"],
   needName:["Add your name first, under Surveyors on the Setup tab.","請先在「設定」頁的「調查員」欄位加入你的名字。"],
+  nameInUse:["This name already has points or records, so only the organiser can remove it.","此名字已有調查點或紀錄，只有負責人可以刪除。"],
   notYoursPt:["Only the person who added this point, or the organiser, can change it.","只有新增此點的人或負責人可以修改。"],
   hGate:["Enter your access code","輸入通行碼"],
   pGate:["Your survey organiser gives you a link or a code.","調查負責人會提供連結或通行碼。"],
@@ -607,7 +608,7 @@ var MYNAME=LS.get("uls_name")||"";
 function setMe(n){MYNAME=n;LS.set("uls_name",n);renderAll()}
 function loadOutbox(){try{return JSON.parse(LS.get("uls_outbox")||"[]")}catch(e){return []}}
 function saveOutbox(o){LS.set("uls_outbox",JSON.stringify(o))}
-var S={plan:null,planVersion:"",team:[],pts:[],server:[],recs:[]};
+var S={plan:null,planVersion:"",team:[],teamDev:{},pts:[],server:[],recs:[]};
 var placing=false,zoom=1,logFilter="all",colorBy="posture";
 var run=null,timer=null;
 
@@ -780,6 +781,12 @@ function renderSetup(){
     L.appendChild(d);
   });
 }
+function nameUsed(t){
+  return S.pts.some(function(p){return p.student===t})||S.recs.some(function(r){return r.student===t});
+}
+function canDropName(t){
+  return ROLE==="admin"||(S.teamDev[t]&&S.teamDev[t]===DEVICE)||!nameUsed(t);
+}
 function renderTeam(){
   var L=$("stuList"); if(!L) return;
   if(!S.team.length){L.innerHTML='<p class="hint">'+esc(T(D.noStu))+'</p>';return}
@@ -793,17 +800,19 @@ function renderTeam(){
         (isMe?' <span class="pill" style="background:var(--accent);color:#fff">'+esc(T(D.meTag))+'</span>':"")+'</strong>'+
       '<span class="mono muted" style="font-size:12px">'+n+' '+esc(T(D.ofPts))+'</span>'+
       (isMe?"":'<button class="btn me" type="button" style="padding:6px 10px;min-height:34px">'+esc(T(D.setMe))+'</button>')+
-      (ROLE==="admin"?'<button class="btn danger rm" type="button" style="padding:6px 10px;min-height:34px">'+esc(T(D.remove))+'</button>':"");
+      (canDropName(t)?'<button class="btn danger rm" type="button" style="padding:6px 10px;min-height:34px">'+esc(T(D.remove))+'</button>':"");
     var mb=d.querySelector(".me"),rb=d.querySelector(".rm");
     if(mb) mb.addEventListener("click",function(){setMe(t)});
-    if(rb) rb.addEventListener("click",function(){adminCall({action:"deleteSurveyor",name:t})});
+    if(rb) rb.addEventListener("click",function(){
+      call({action:"deleteSurveyor",name:t,device:DEVICE},function(){if(t===MYNAME) setMe("")});
+    });
     L.appendChild(d);
   });
 }
 $("stuAdd").addEventListener("click",function(){
   var v=$("stuNew").value.trim(); if(!v) return;
   if(S.team.indexOf(v)>=0){if(ROLE!=="admin") setMe(v);else toast(T(D.already));$("stuNew").value="";return}
-  call({action:"addSurveyor",name:v},function(){$("stuNew").value="";if(ROLE!=="admin") setMe(v)});
+  call({action:"addSurveyor",name:v,device:DEVICE},function(){$("stuNew").value="";if(ROLE!=="admin") setMe(v)});
 });
 function renderCoverage(){
   var t=$("covTable"); if(!t) return;
@@ -1308,7 +1317,7 @@ function call(body,onOk,failMsg){
   apiPost(body).then(function(res){
     if(!res.ok){
       toast(res.error==="admin_only"?T(D.adminOnly):res.error==="not_yours"?T(D.notYoursPt):
-            res.error==="no_name"?T(D.needName):(failMsg||T(D.saveFail)));
+            res.error==="no_name"?T(D.needName):res.error==="name_in_use"?T(D.nameInUse):(failMsg||T(D.saveFail)));
       setSync();return;
     }
     if(onOk) onOk(res);
@@ -1365,7 +1374,7 @@ function refresh(force){
     }
     online=true;lastSync=new Date();ROLE=res.role;
     S.pts=(res.points||[]).map(function(p){p.student=p.surveyor||"";return p}).sort(function(a,b){return a.n-b.n});
-    S.team=res.surveyors||[];
+    S.team=res.surveyors||[];S.teamDev=res.surveyorDevices||{};
     S.server=res.records||[];
     mergeRecs();
     var wantPlan=res.planVersion&&(force||res.planVersion!==S.planVersion);

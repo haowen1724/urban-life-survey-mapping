@@ -17,7 +17,8 @@
  *   Two codes are kept in Script Properties: ADMIN_CODE and STUDY_CODE.
  *   The admin link can upload the site plan, change or remove anything, and delete any record.
  *   The surveyor link can add a name, add survey points (assigned to that name), rename or
- *   remove only the points it created, add records, and delete only records from its own device.
+ *   remove only the points it created, remove a surveyor name it added or that nobody is using,
+ *   add records, and delete only records from its own device.
  *   The codes are a shared secret, not real authentication. Treat the links like a
  *   door key, and change the codes (run rotateCodes) if a link leaks.
  */
@@ -40,7 +41,7 @@ var FOLDER_NAME = "Urban Life Survey — site plans";
 
 var HEAD = {
   points: ["id", "n", "name", "x", "y", "surveyor", "created_at", "device"],
-  surveyors: ["name", "created_at"],
+  surveyors: ["name", "created_at", "device"],
   records: ["record_id", "type", "point_id", "point", "surveyor", "time", "time_local", "day_type", "slot",
             "weather", "total", "notes", "device", "created_at", "payload"],
   moving: (function () {
@@ -89,6 +90,7 @@ function doGet(e) {
       role: role,
       points: rows_("points").filter(function (r) { return r.id; }),
       surveyors: rows_("surveyors").map(function (r) { return String(r.name || ""); }).filter(String),
+      surveyorDevices: rows_("surveyors").reduce(function (m, r) { if (r.name) m[String(r.name)] = String(r.device || ""); return m; }, {}),
       records: rows_("records").filter(function (r) { return r.record_id; }).map(parseRecord_),
       planVersion: props_().getProperty("PLAN_VERSION") || ""
     });
@@ -110,7 +112,8 @@ function doPost(e) {
     switch (d.action) {
       case "addRecord": return out_(addRecord_(d.record));
       case "deleteRecord": return out_(deleteRecord_(String(d.id || ""), String(d.device || ""), role));
-      case "addSurveyor": return out_(addSurveyor_(String(d.name || "")));
+      case "addSurveyor": return out_(addSurveyor_(String(d.name || ""), String(d.device || "")));
+      case "deleteSurveyor": return out_(deleteSurveyor_(d, role));
       case "addPoint": return out_(addPoint_(d, role));
       case "updatePoint": return out_(updatePoint_(d, role));
       case "deletePoint": return out_(deletePoint_(d, role));
@@ -118,7 +121,6 @@ function doPost(e) {
     if (role !== "admin") return out_({ ok: false, error: "admin_only" });
     switch (d.action) {
       case "setPlan": return out_(setPlan_(String(d.dataUrl || "")));
-      case "deleteSurveyor": return out_(deleteWhere_("surveyors", "name", String(d.name || "")));
     }
     return out_({ ok: false, error: "unknown_action" });
   } catch (err) {
@@ -261,12 +263,26 @@ function deletePoint_(d, role) {
   return deleteWhere_("points", "id", String(d.id || ""));
 }
 
-function addSurveyor_(name) {
+function addSurveyor_(name, device) {
   name = str_(name, 60);
   if (!name) return { ok: false, error: "no_name" };
   if (findRow_("surveyors", "name", name) > 0) return { ok: true, duplicate: true };
-  sheet_("surveyors").appendRow([name, new Date().toISOString()]);
+  sheet_("surveyors").appendRow([name, new Date().toISOString(), str_(device, 40)]);
   return { ok: true };
+}
+
+/** Surveyors may remove a name they added themselves, or any name nobody is using yet. */
+function deleteSurveyor_(d, role) {
+  var name = str_(d.name, 60);
+  var row = rows_("surveyors").filter(function (r) { return String(r.name) === name; })[0];
+  if (!row) return { ok: true, missing: true };
+  if (role !== "admin") {
+    var mine = row.device && String(row.device) === String(d.device || "");
+    var used = rows_("points").some(function (p) { return String(p.surveyor) === name; }) ||
+               rows_("records").some(function (r) { return String(r.surveyor) === name; });
+    if (!mine && used) return { ok: false, error: "name_in_use" };
+  }
+  return deleteWhere_("surveyors", "name", name);
 }
 
 function setPlan_(dataUrl) {

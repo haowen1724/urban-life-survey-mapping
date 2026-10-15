@@ -79,7 +79,7 @@ The page remembers the code on that phone and removes it from the address bar. S
 2. **Each surveyor:** open the surveyor link **while on Wi-Fi**, so the site plan is stored on the phone and loads even with weak signal. Under **調查員 Surveyors**, add your name, or tap **這是我 This is me** if it's already listed. Then tap **新增調查點 Add survey point** and tap the plan where you'll stand. The point is yours: only you and the organiser can rename or remove it.
 3. **On site:** the **調查 Survey** tab shows a coverage table of what's done and what's still missing. Each record is saved under the name of the person who made it.
 
-The organiser can still add, rename, reassign or remove any point and any surveyor name.
+A surveyor can remove a name they added by mistake, or any name nobody is using yet. A name that already has points or records can only be removed by the organiser, who can also add, rename, reassign or remove any point.
 
 ## The data
 
