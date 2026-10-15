@@ -97,7 +97,7 @@ The **紀錄 Records → 匯出 CSV Export CSV** button downloads the same data 
 
 - **The codes are a shared secret, not real logins.** Anyone holding a link can act with that link's role. If a link leaks, run **`rotateCodes`** in Apps Script; old links stop working immediately.
 - **Survey data lives in your Google account.** Nothing is stored in this repository or on GitHub.
-- **This repository is public.** The page code, and the site plan once uploaded, can be seen by anyone with the link. Use your own drawing or an OpenStreetMap export (with its credit), not a Google Maps screenshot.
+- **This repository is public, but holds no data.** Anyone can see the page code. The site plan is stored in your Google Drive and is only sent to someone holding a valid code; it is never in this repository. If the plan comes from an open-data base map, keep its source credit.
 - **No photos and no names of the public** are collected. Surveyor names are entered by the organiser.
 - **Before wider use**, review this setup against Arup and university data policies. When moving to Arup systems, only the storage layer (`apps-script/` and `config.js`) needs to change.
 
