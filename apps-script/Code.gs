@@ -15,8 +15,9 @@
  *
  * Access
  *   Two codes are kept in Script Properties: ADMIN_CODE and STUDY_CODE.
- *   The admin link can change the setup and delete any record.
- *   The surveyor link can add records and delete only records from its own device.
+ *   The admin link can upload the site plan, change or remove anything, and delete any record.
+ *   The surveyor link can add a name, add survey points (assigned to that name), rename or
+ *   remove only the points it created, add records, and delete only records from its own device.
  *   The codes are a shared secret, not real authentication. Treat the links like a
  *   door key, and change the codes (run rotateCodes) if a link leaks.
  */
@@ -38,7 +39,7 @@ var MAX_PEOPLE = 300;        // people per staying record
 var FOLDER_NAME = "Urban Life Survey — site plans";
 
 var HEAD = {
-  points: ["id", "n", "name", "x", "y", "surveyor", "created_at"],
+  points: ["id", "n", "name", "x", "y", "surveyor", "created_at", "device"],
   surveyors: ["name", "created_at"],
   records: ["record_id", "type", "point_id", "point", "surveyor", "time", "time_local", "day_type", "slot",
             "weather", "total", "notes", "device", "created_at", "payload"],
@@ -109,14 +110,14 @@ function doPost(e) {
     switch (d.action) {
       case "addRecord": return out_(addRecord_(d.record));
       case "deleteRecord": return out_(deleteRecord_(String(d.id || ""), String(d.device || ""), role));
+      case "addSurveyor": return out_(addSurveyor_(String(d.name || "")));
+      case "addPoint": return out_(addPoint_(d, role));
+      case "updatePoint": return out_(updatePoint_(d, role));
+      case "deletePoint": return out_(deletePoint_(d, role));
     }
     if (role !== "admin") return out_({ ok: false, error: "admin_only" });
     switch (d.action) {
       case "setPlan": return out_(setPlan_(String(d.dataUrl || "")));
-      case "addPoint": return out_(addPoint_(d));
-      case "updatePoint": return out_(updatePoint_(d));
-      case "deletePoint": return out_(deleteWhere_("points", "id", String(d.id || "")));
-      case "addSurveyor": return out_(addSurveyor_(String(d.name || "")));
       case "deleteSurveyor": return out_(deleteWhere_("surveyors", "name", String(d.name || "")));
     }
     return out_({ ok: false, error: "unknown_action" });
@@ -143,7 +144,8 @@ function addRecord_(r) {
 
   var ts = String(r.ts || "").slice(0, 40);
   var base = {
-    id: id, type: r.type, pointId: pt.id, point: String(pt.name), surveyor: String(pt.surveyor || ""),
+    id: id, type: r.type, pointId: pt.id, point: String(pt.name),
+    surveyor: str_(r.surveyorName, 60) || String(pt.surveyor || ""),
     ts: ts, tsLocal: str_(r.tsLocal, 20), dayType: pick_(r.dayType, ["weekday", "weekend"], ""),
     slot: pick_(r.slot, ["morning", "midday", "afternoon", "evening"], ""),
     wx: str_(r.wx, 20), notes: str_(r.notes, 1000), device: str_(r.device, 40)
@@ -224,22 +226,39 @@ function parseRecord_(r) {
 
 /* ------------------------------------------------------------------ setup actions */
 
-function addPoint_(d) {
+function addPoint_(d, role) {
   var pts = rows_("points");
   var n = pts.reduce(function (a, p) { return Math.max(a, Number(p.n) || 0); }, 0) + 1;
   var id = "p" + Utilities.getUuid().replace(/-/g, "").slice(0, 10);
   var name = str_(d.name, 60) || ("調查點 Point " + n);
-  sheet_("points").appendRow([id, n, name, num01_(d.x), num01_(d.y), "", new Date().toISOString()]);
+  var who = str_(d.surveyor, 60);
+  if (role !== "admin" && !who) return { ok: false, error: "no_name" };
+  sheet_("points").appendRow([id, n, name, num01_(d.x), num01_(d.y), who, new Date().toISOString(), str_(d.device, 40)]);
   return { ok: true, id: id, n: n };
 }
 
-function updatePoint_(d) {
-  var r = findRow_("points", "id", String(d.id || ""));
-  if (r < 0) return { ok: false, error: "unknown_point" };
+/** Surveyors may change or remove only points made on their own phone. */
+function ownPoint_(d, role) {
+  var id = String(d.id || "");
+  var pt = rows_("points").filter(function (p) { return p.id === id; })[0];
+  if (!pt) return { error: "unknown_point" };
+  if (role !== "admin" && (!pt.device || String(pt.device) !== String(d.device || ""))) return { error: "not_yours" };
+  return { row: findRow_("points", "id", id) };
+}
+
+function updatePoint_(d, role) {
+  var c = ownPoint_(d, role);
+  if (c.error) return { ok: false, error: c.error };
   var sh = sheet_("points");
-  if (d.name != null) sh.getRange(r, HEAD.points.indexOf("name") + 1).setValue(str_(d.name, 60));
-  if (d.surveyor != null) sh.getRange(r, HEAD.points.indexOf("surveyor") + 1).setValue(str_(d.surveyor, 60));
+  if (d.name != null) sh.getRange(c.row, HEAD.points.indexOf("name") + 1).setValue(str_(d.name, 60));
+  if (d.surveyor != null && role === "admin") sh.getRange(c.row, HEAD.points.indexOf("surveyor") + 1).setValue(str_(d.surveyor, 60));
   return { ok: true };
+}
+
+function deletePoint_(d, role) {
+  var c = ownPoint_(d, role);
+  if (c.error) return { ok: false, error: c.error };
+  return deleteWhere_("points", "id", String(d.id || ""));
 }
 
 function addSurveyor_(name) {
@@ -299,6 +318,9 @@ function sheet_(name) {
     sh.setFrozenRows(1);
     // keep ids, times and codes as plain text so Sheets does not reformat them
     sh.getRange(2, 1, sh.getMaxRows() - 1, HEAD[name].length).setNumberFormat("@");
+  } else if (sh.getLastColumn() < HEAD[name].length) {
+    // a newer version of this script added columns: extend the header row in place
+    sh.getRange(1, 1, 1, HEAD[name].length).setValues([HEAD[name]]).setFontWeight("bold");
   }
   return sh;
 }

@@ -42,7 +42,7 @@ Choose **setup** in the function menu at the top and press **Run**.
 - Google asks you to authorise the script. Choose your account, then **Advanced → Go to … (unsafe)**. This warning appears for any script you write yourself.
 - The script creates the six tabs and two access codes. Open **Execution log** to see them:
   - `ADMIN_CODE` is for you, the organiser. It can change the setup and delete any record.
-  - `STUDY_CODE` is for surveyors. They can add records and delete only those made on their own phone.
+  - `STUDY_CODE` is for surveyors. They add their own name, place their own survey points, add records, and can change or delete only what they made on their own phone.
 
 ### 4. Deploy the web app
 Go to **Deploy → New deployment**, choose the type **Web app**, and set:
@@ -75,9 +75,11 @@ The page remembers the code on that phone and removes it from the address bar. S
 
 ## Before a field day
 
-1. Open your organiser link. On **設定 Setup**, upload the site plan, add the surveyors, place the survey points, and assign each point to a surveyor.
-2. Ask every surveyor to open their link once **while on Wi-Fi**. The site plan is then stored on their phone and loads even with weak signal.
-3. On site, the **調查 Survey** tab shows a coverage table of what is done and what is still missing.
+1. **Organiser:** open your organiser link and, on **設定 Setup**, upload the site plan.
+2. **Each surveyor:** open the surveyor link **while on Wi-Fi**, so the site plan is stored on the phone and loads even with weak signal. Under **調查員 Surveyors**, add your name, or tap **這是我 This is me** if it's already listed. Then tap **新增調查點 Add survey point** and tap the plan where you'll stand. The point is yours: only you and the organiser can rename or remove it.
+3. **On site:** the **調查 Survey** tab shows a coverage table of what's done and what's still missing. Each record is saved under the name of the person who made it.
+
+The organiser can still add, rename, reassign or remove any point and any surveyor name.
 
 ## The data
 
@@ -98,7 +100,7 @@ The **紀錄 Records → 匯出 CSV Export CSV** button downloads the same data 
 - **The codes are a shared secret, not real logins.** Anyone holding a link can act with that link's role. If a link leaks, run **`rotateCodes`** in Apps Script; old links stop working immediately.
 - **Survey data lives in your Google account.** Nothing is stored in this repository or on GitHub.
 - **This repository is public, but holds no data.** Anyone can see the page code. The site plan is stored in your Google Drive and is only sent to someone holding a valid code; it is never in this repository. If the plan comes from an open-data base map, keep its source credit.
-- **No photos and no names of the public** are collected. Surveyor names are entered by the organiser.
+- **No photos and no names of the public** are collected. Surveyors enter their own names; ask them to use the name the class uses, not a full legal name, if that matters for your consent terms.
 - **Before wider use**, review this setup against Arup and university data policies. When moving to Arup systems, only the storage layer (`apps-script/` and `config.js`) needs to change.
 
 ## Updating the script later
